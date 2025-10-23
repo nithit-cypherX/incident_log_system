@@ -4,16 +4,15 @@
   :root {
     /* Font Families */
     --font-primary: "Inter", system-ui, -apple-system, sans-serif;
-    --font-secondary: "Roboto", sans-serif;
-    --font-heading: "Poppins", sans-serif;
 
     /* Colors */
-    --color-primary: #ffffff;
-    --color-secondary: #8b5cf6;
-    --color-accent: #f59e0b;
-    --color-text-primary: #1f2937;
-    --color-text-secondary: #6b7280;
-    --color-text-muted: #9ca3af;
+    --color-text-primary: #f8f9fa;
+    --color-link: #0d6efd;
+    --color-text-secondary: #adb5bd;
+
+    /* Button Colors */
+    --color-btn-danger: #dc3545;
+    --color-btn-danger-hover: #b91c2c;
   }
 }
 
@@ -29,24 +28,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
     font-family: var(--font-primary);
   }
 
-  .font-secondary {
-    font-family: var(--font-secondary);
-  }
-
-  .font-heading {
-    font-family: var(--font-heading);
-  }
-
   .text-primary-color {
-    color: var(--color-primary);
+    color: var(--color-text-primary);
+  }
+
+  .text-link-color {
+    color: var(--color-link);
   }
 
   .text-secondary-color {
-    color: var(--color-secondary);
-  }
-
-  .text-accent {
-    color: var(--color-accent);
+    color: var(--color-text-secondary);
   }
 
   .bg-primary {
@@ -55,5 +46,34 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
   .bg-secondary {
     background-color: var(--color-secondary);
+  }
+}
+
+/* Custom Button Components */
+@layer components {
+  .btn-main-red {
+    background-color: var(--color-btn-danger);
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+  }
+
+  .btn-main-red:hover {
+    background-color: var(--color-btn-danger-hover);
+  }
+
+  .btn-main-gray {
+    background-color: #4b5563; /* gray-600 */
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.2s;
+  }
+
+  .btn-main-gray:hover {
+    background-color: #374151; /* gray-700 */
   }
 }
