@@ -1,24 +1,24 @@
 import React, { useState } from "react";
 import { FaEye, FaEyeSlash, FaExclamationTriangle } from "react-icons/fa";
 
+
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     // Main container with dark background
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#212529] text-[#F8F9FA] p-4 font-sans">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#212529] text-primary-color p-4 font-primary">
       {/* Subtle background texture/image with overlay */}
       <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?q=80&w=2574&auto=format&fit=crop')] bg-cover bg-center opacity-10"></div>
 
       {/* Centralized Login Form Container */}
       <div className="relative z-10 bg-[#343A40] p-10 rounded-lg shadow-2xl w-full max-w-md border border-[#495057]">
-
         {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="mx-auto mb-4 h-20 w-20 rounded-full bg-red-800 flex items-center justify-center">
             <FaExclamationTriangle size={50} className="text-red-300" />
           </div>
-          <h1 className="text-3xl font-bold text-[#F8F9FA]">
+          <h1 className="text-3xl font-bold text-primary-color">
             Incident Log System
           </h1>
           <p className="text-[#6C757D] mt-3">Welcome to Incident Log System</p>
@@ -28,7 +28,7 @@ const LoginPage = () => {
           {/* Username Input */}
           <div className="mb-5">
             <label
-              className="block text-sm font-medium text-[#F8F9FA] mb-2"
+              className="block text-sm font-medium text-primary-color mb-2"
               htmlFor="username"
             >
               Username or Email
@@ -44,7 +44,7 @@ const LoginPage = () => {
           {/* Password Input with Toggle */}
           <div className="mb-5 relative">
             <label
-              className="block text-sm font-medium text-[#F8F9FA] mb-2"
+              className="block text-sm font-medium text-primary-color mb-2"
               htmlFor="password"
             >
               Password
@@ -75,7 +75,7 @@ const LoginPage = () => {
               />
               <label
                 htmlFor="remember-me"
-                className="ml-2 block text-sm text-[#F8F9FA]"
+                className="ml-2 block text-sm text-primary-color"
               >
                 Remember me
               </label>
@@ -99,11 +99,6 @@ const LoginPage = () => {
           </button>
         </form>
       </div>
-
-      {/* Footer */}
-      <footer className="absolute bottom-5 text-center text-[#ADB5BD] text-sm">
-        <p>© 2025 Fire Department Name. Version 1.0</p>
-      </footer>
     </div>
   );
 };
