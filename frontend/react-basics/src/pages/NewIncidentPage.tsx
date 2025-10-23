@@ -20,7 +20,7 @@ type FormSelectProps = {
 // A reusable styled input component for consistency
 const FormInput = ({ label, type = 'text', placeholder = 'any', required = false }: FormInputProps ) => (  
   <div>
-    <label className="block text-sm font-medium text-[#F8F9FA] mb-2">
+    <label className="block text-sm font-medium text-primary-color mb-2">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <input
@@ -34,7 +34,7 @@ const FormInput = ({ label, type = 'text', placeholder = 'any', required = false
 // A reusable styled select component
 const FormSelect = ({ label, children, required = false }: FormSelectProps) => (
   <div>
-    <label className="block text-sm font-medium text-[#F8F9FA] mb-2">
+    <label className="block text-sm font-medium text-primary-color mb-2">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
     <select className="w-full p-3 h-12 bg-[#343A40] rounded-md border border-[#495057] focus:outline-none focus:ring-1 focus:ring-[#DC3545]">
@@ -46,7 +46,7 @@ const FormSelect = ({ label, children, required = false }: FormSelectProps) => (
 
 const NewIncidentPage = () => {
   return (
-    <div className="min-h-screen bg-[#212529] text-[#F8F9FA] font-sans flex flex-col">
+    <div className="min-h-screen bg-[#212529] text-primary-color font-primary flex flex-col">
       <Header title="Fire Incident Log" showCancel={true} />
       
       <main className="flex-grow p-8 overflow-y-auto">
@@ -81,7 +81,7 @@ const NewIncidentPage = () => {
                 <option>Closed</option>
               </FormSelect>
               <div className="md:col-span-2">
-                 <label className="block text-sm font-medium text-[#F8F9FA] mb-2">Brief Description</label>
+                 <label className="block text-sm font-medium text-primary-color mb-2">Brief Description</label>
                  <textarea 
                     className="w-full p-3 bg-[#343A40] rounded-md border border-[#495057] focus:outline-none focus:ring-1 focus:ring-[#DC3545]"
                     rows={5}
@@ -104,7 +104,7 @@ const NewIncidentPage = () => {
                 <div className="md:col-span-3 h-64 bg-[#343A40] rounded-md flex items-center justify-center text-[#6C757D] border border-[#495057]">
                     Map Placeholder
                 </div>
-                <button className="md:col-span-3 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors flex items-center justify-center">
+                <button className="md:col-span-3 btn-main-gray py-2 px-4 rounded items-center justify-center">
                     <FaMapMarkerAlt className="mr-2" /> Use Current Location
                 </button>
              </div>
@@ -133,17 +133,17 @@ const NewIncidentPage = () => {
             <div className="p-6 border-2 border-dashed border-[#495057] rounded-md text-center text-[#6C757D]">
                 <FaPaperclip className="mx-auto text-3xl mb-2" />
                 <p>Drag and drop photos or videos here</p>
-                <p className="text-sm">or <span className="text-[#0D6EFD] font-semibold">browse files</span></p>
+                <p className="text-sm">or <span className="text-link-color font-semibold hover:underline">browse files</span></p>
             </div>
-            <button className="mt-4 w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition-colors flex items-center justify-center">
+            <button className="mt-4 w-full btn-main-gray py-2 px-4 rounded justify-center">
                 <FaMicrophone className="mr-2" /> Record Voice Note
             </button>
           </section>
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4 mt-8">
-            <button className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-md transition-colors">Save as Draft</button>
-            <button className="bg-[#DC3545] hover:bg-red-700 text-white font-bold py-2 px-6 rounded-md transition-colors">Save & Activate Incident</button>
+            <button className="btn-main-gray py-2 px-6 rounded-md">Cancel</button>
+            <button className="btn-main-red py-2 px-6 rounded-md">Save & Activate Incident</button>
           </div>
         </div>
       </main>
