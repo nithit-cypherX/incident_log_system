@@ -1,1 +1,59 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Font Families */
+    --font-primary: "Inter", system-ui, -apple-system, sans-serif;
+    --font-secondary: "Roboto", sans-serif;
+    --font-heading: "Poppins", sans-serif;
+
+    /* Colors */
+    --color-primary: #ffffff;
+    --color-secondary: #8b5cf6;
+    --color-accent: #f59e0b;
+    --color-text-primary: #1f2937;
+    --color-text-secondary: #6b7280;
+    --color-text-muted: #9ca3af;
+  }
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) brightness(0.7);
+  cursor: pointer;
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .font-primary {
+    font-family: var(--font-primary);
+  }
+
+  .font-secondary {
+    font-family: var(--font-secondary);
+  }
+
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .text-primary-color {
+    color: var(--color-primary);
+  }
+
+  .text-secondary-color {
+    color: var(--color-secondary);
+  }
+
+  .text-accent {
+    color: var(--color-accent);
+  }
+
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+
+  .bg-secondary {
+    background-color: var(--color-secondary);
+  }
+}
