@@ -4,6 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import NewIncidentPage from "./pages/NewIncidentPage";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import IncidentDetailsPage from "./pages/IncidentDetailsPage";
 
 function App() {
   return (
@@ -24,7 +25,8 @@ function App() {
               }
             /> */}
             <Route path="/new-incident" element={<NewIncidentPage />} />
-            
+            {/* Redirect root to incident-details */}
+            <Route path="/incident-details" element={<IncidentDetailsPage />} />
             {/* Redirect root to login */}
             <Route path="/" element={<Navigate to="/login" replace />} />
           </Routes>
