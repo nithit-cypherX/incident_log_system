@@ -98,7 +98,7 @@ app.post('/logout', (req, res) => {
 
 
 // 2. Incident Endpoints (for Pages 3, 4, 5)
-app.post('/api/v1/incidents', (req, res) => {
+app.post('/api/v1/incidents/search', (req, res) => {
     const { status, type, search } = req.body;
 
     let query = `SELECT * FROM incidents WHERE 1=1`
@@ -106,16 +106,16 @@ app.post('/api/v1/incidents', (req, res) => {
     const queryParams = [];
 
     if (status) {
-        query += `AND status = ?`
-        queryParams.push(`%${status}%`)
+        query += ` AND status = ?`
+        queryParams.push(`${status}`)
     }
     if (type){
-        query += `AND incident_type = ?`
-        queryParams.push(`%${type}%`)
+        query += ` AND incident_type = ?`
+        queryParams.push(`${type}`)
     }
     if (search){
-        query += `AND incident_type LIKE %?%`
-        queryParams.push(`%${type}%`)
+        query += ` AND description LIKE ?`
+        queryParams.push(`%${search}%`)
     }
 
     db.query(query, queryParams, (err, results) => {
@@ -128,7 +128,7 @@ app.post('/api/v1/incidents', (req, res) => {
     });
 });
 
-app.post('/api/v1/incidents', async (req, res) => {
+app.post('/api/v1/incidents/create', async (req, res) => {
   const {
     incident_type,
     priority,
@@ -276,56 +276,56 @@ app.put('/api/v1/incidents/:id', (req, res) => {
     description
   } = req.body;
 
-  const sql = `
+  let sql = `
     UPDATE incidents SET
       updated_at = CURRENT_TIMESTAMP
   `;
 
   const values = [];
 
-  if (incident_type){
-    sql +=`,incident_type = ?`;
-    values.push(`%${incident_type}%`);
+  if (incident_type) {
+    sql += `, incident_type = ?`;
+    values.push(incident_type);
   }
-  if (priority){
-    sql +=`,priority = ?`;
-    values.push(`%${priority}%`);
+  if (priority) {
+    sql += `, priority = ?`;
+    values.push(priority);
   }
-  if (status){
-    sql +=`,status = ?`;
-    values.push(`%${status}%`);
+  if (status) {
+    sql += `, status = ?`;
+    values.push(status);
   }
-  if (address){
-    sql +=`,address = ?`;
-    values.push(`%${address}%`);
+  if (address) {
+    sql += `, address = ?`;
+    values.push(address);
   }
-  if (city){
-    sql +=`,city = ?`;
-    values.push(`%${city}%`);
-  }if (state){
-    sql +=`,state = ?`;
-    values.push(`%${state}%`);
+  if (city) {
+    sql += `, city = ?`;
+    values.push(city);
   }
-  if (zip_code){
-    sql +=`,zip_code = ?`;
-    values.push(`%${zip_code}%`);
+  if (state) {
+    sql += `, state = ?`;
+    values.push(state);
   }
-  if (latitude){
-    sql +=`,latitude = ?`;
-    values.push(`%${latitude}%`);
+  if (zip_code) {
+    sql += `, zip_code = ?`;
+    values.push(zip_code);
   }
-  if (longitude){
-    sql +=`,longitude = ?`;
-    values.push(`%${longitude}%`);
+  if (latitude) {
+    sql += `, latitude = ?`;
+    values.push(latitude);
   }
-  if (description){
-    sql +=`,description = ?`;
-    values.push(`%${description}%`);
+  if (longitude) {
+    sql += `, longitude = ?`;
+    values.push(longitude);
+  }
+  if (description) {
+    sql += `, description = ?`;
+    values.push(description);
   }
 
-  sql +=`WHERE id = ?`;
-  values.push(`%${id}%`);
-
+  sql += ` WHERE id = ?`;
+  values.push(id);
 
   db.query(sql, values, (err, result) => {
     if (err) {
@@ -357,7 +357,6 @@ app.delete('/api/v1/incidents/:id', (req, res) => {
     res.json({ message: 'Incident deleted successfully' });
   });
 });
-
 
 
 // 3. Nested Incident Resources (for Page 5)
