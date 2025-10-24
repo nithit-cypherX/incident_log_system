@@ -1,3 +1,49 @@
+### 1.
+### *POST /login
+ <img width="526" height="610" alt="image" src="https://github.com/user-attachments/assets/db2773f9-e871-4d41-808b-7121b721f78a" />
+
+### *GET /check-login
+ Have to test on web
+
+### *POST /logout
+ Have to test on web
+
+### 2. Incident Endpoints (for Pages 3, 4, 5)
+
+### *POST /api/v1/incidents/search
+ <img width="580" height="980" alt="image" src="https://github.com/user-attachments/assets/75efe00a-fc34-40f9-813e-8f0f809c576e" />
+
+
+### *POST /api/v1/incidents/create
+ <img width="581" height="957" alt="image" src="https://github.com/user-attachments/assets/8b2902e0-5914-4daf-b6d5-b95f3fb5f023" />
+
+### *GET /api/v1/incidents/:id
+ <img width="572" height="983" alt="image" src="https://github.com/user-attachments/assets/16c09929-783e-4e2e-96c4-6745d9638eb8" />
+
+### *PUT /api/v1/incidents/:id
+ <img width="583" height="990" alt="image" src="https://github.com/user-attachments/assets/b12536d8-f5f6-4987-a40a-378c27bdfb81" />
+
+### *DELETE /api/v1/incidents/:id
+ <img width="585" height="993" alt="image" src="https://github.com/user-attachments/assets/36de2e72-21f5-4536-982c-6b6c636bd0af" />
+
+### 3. Nested Incident Resources (for Page 5)
+
+### *POST /api/v1/incidents/:id/notes
+ <img width="579" height="958" alt="image" src="https://github.com/user-attachments/assets/ca5f8e16-2e7a-4800-b4f8-0706dbe5930f" />
+
+### *POST /api/v1/incidents/:id/attachments
+ Have to test on web
+ 
+### *DELETE /api/v1/attachments/:attachmentId
+ <img width="577" height="993" alt="image" src="https://github.com/user-attachments/assets/22be622f-4e96-4b91-a5e5-d5f79adf644e" />
+
+### *POST /api/v1/incidents/:id/personnel
+ <img width="580" height="959" alt="image" src="https://github.com/user-attachments/assets/50f65fba-3ed1-47c5-a71a-237a74af8eff" />
+
+### *DELETE /api/v1/incidents/:id/personnel/:userId
+ <img width="587" height="1041" alt="image" src="https://github.com/user-attachments/assets/77310cc4-0be4-4e98-aa08-2ddc8ccb1d15" />
+
+
 ### 4. Crew & Equipment Endpoints (for Page 6)<br>
 ### *GET /api/v1/personnel**
  <img width="773" height="739" alt="image" src="https://github.com/user-attachments/assets/1a56ae1d-f5cb-4701-92ef-c991897a3067" />
@@ -68,3 +114,4 @@
 ### *DELETE /api/v1/admin/users/{id}**
    <img width="940" height="462" alt="image" src="https://github.com/user-attachments/assets/c7a9ff4f-12a7-49ed-911b-772a02d4b2bd" />
 <img width="1065" height="218" alt="image" src="https://github.com/user-attachments/assets/c45a5b71-e910-4988-96e1-d5cbbc14916f" />
+
