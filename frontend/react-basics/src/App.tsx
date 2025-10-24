@@ -4,7 +4,7 @@ import LoginPage from "./pages/LoginPage";
 import NewIncidentPage from "./pages/NewIncidentPage";
 import IncidentDashboard from "./pages/IncidentDashboard"
 import Footer from "./components/Footer";
-// import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
