@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 
 // Define the props for this component
 type BadgeProps = {

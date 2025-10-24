@@ -2,8 +2,9 @@ import "./App.css";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
 import NewIncidentPage from "./pages/NewIncidentPage";
+import IncidentDashboard from "./pages/IncidentDashboard"
 import Footer from "./components/Footer";
-import ProtectedRoute from "./components/ProtectedRoute";
+// import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -25,6 +26,8 @@ function App() {
             /> */}
             <Route path="/new-incident" element={<NewIncidentPage />} />
             
+            <Route path="/incident-dashboard" element={<IncidentDashboard />} />
+
             {/* Redirect root to login */}
             <Route path="/" element={<Navigate to="/login" replace />} />
           </Routes>

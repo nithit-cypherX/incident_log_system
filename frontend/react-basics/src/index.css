@@ -13,6 +13,12 @@
     /* Button Colors */
     --color-btn-danger: #dc3545;
     --color-btn-danger-hover: #b91c2c;
+
+    /* Form Colors */
+    --color-form-bg: #1f2937;
+    --color-input-bg: #343a40;
+    --color-input-border: #495057;
+    --color-input-focus-ring: #dc3545;
   }
 }
 
@@ -38,14 +44,6 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
   .text-secondary-color {
     color: var(--color-text-secondary);
-  }
-
-  .bg-primary {
-    background-color: var(--color-primary);
-  }
-
-  .bg-secondary {
-    background-color: var(--color-secondary);
   }
 }
 
@@ -75,5 +73,16 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 
   .btn-main-gray:hover {
     background-color: #374151; /* gray-700 */
+  }
+
+  .form-input {
+    background-color: var(--color-input-bg);
+    border: 1px solid var(--color-input-border);
+    transition: all 0.2s;
+  }
+
+  .form-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 1px var(--color-input-focus-ring);
   }
 }
