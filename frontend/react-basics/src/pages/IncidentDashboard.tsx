@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import Header from "../components/NavBar";
+import NavBar from "../components/NavBar";
 import StatusBadge from "../components/StatusBadge";
 import {
   FaPlus,
@@ -289,7 +289,7 @@ const IncidentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#212529] text-primary-color font-primary flex flex-col">
-      <Header title="Fire Incident Log" />
+      <NavBar />
 
       <main className="flex-grow p-8 overflow-y-auto">
         <div className="max-w-7xl mx-auto bg-[#2C3034] p-6 rounded-lg shadow-lg">

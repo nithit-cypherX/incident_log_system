@@ -1,5 +1,5 @@
 import React from "react";
-import Header from "../components/NavBar";
+import NavBar from "../components/NavBar";
 import { FaMapMarkerAlt, FaPaperclip, FaMicrophone } from "react-icons/fa";
 
 // Define the shape of props for FormInput
@@ -51,7 +51,7 @@ const FormSelect = ({ label, children, required = false }: FormSelectProps) => (
 const NewIncidentPage = () => {
   return (
     <div className="min-h-screen bg-[#212529] text-primary-color font-primary flex flex-col">
-      <Header title="Fire Incident Log" showCancel={true} />
+      <NavBar />
 
       <main className="flex-grow p-8 overflow-y-auto">
         <div className="max-w-4xl mx-auto bg-[#2C3034] p-6 rounded-lg shadow-lg">
