@@ -26,7 +26,7 @@ function App() {
             /> */}
             <Route path="/new-incident" element={<NewIncidentPage />} />
             {/* Redirect root to incident-details */}
-            <Route path="/incident-details" element={<IncidentDetailsPage />} />
+            <Route path="/incident-detail" element={<IncidentDetailsPage />} />
             {/* Redirect root to login */}
             <Route path="/" element={<Navigate to="/login" replace />} />
           </Routes>
