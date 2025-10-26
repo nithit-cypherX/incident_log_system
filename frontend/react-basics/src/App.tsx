@@ -10,7 +10,8 @@ import Footer from "./components/Footer";
 import ProtectedRoute from "./components/ProtectedRoute";
 import IncidentDashboard from "./pages/IncidentDashboard";
 import NewIncidentPage from "./pages/NewIncidentPage";
-
+import Dashboard from "./pages/Dashboard";
+import IncidentDetail from "./pages/IncidentDetailsPage";
 
 function App() {
   return (
@@ -22,19 +23,47 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
 
             {/* Protected routes */}
-            {/* <Route
-              path="/new-incident"
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/incident-dashboard"
+              element={
+                <ProtectedRoute>
+                  <IncidentDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/incident/new"
               element={
                 <ProtectedRoute>
                   <NewIncidentPage />
                 </ProtectedRoute>
               }
-            /> */}
-            <Route path="/incident-dashboard" element={<IncidentDashboard />} />
-            <Route path="/new-incident" element={<NewIncidentPage/>} />
+            />
+            
+            {/* 🌟 NEW: This is the dynamic route for the details page */}
+            {/* It will match /incident/1, /incident/2, etc. */}
+            <Route
+              path="/incident/:id"
+              element={
+                <ProtectedRoute>
+                  <IncidentDetail />
+                </ProtectedRoute>
+              }
+            />
 
-            {/* Redirect root to login */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            {/* Redirect root to the main dashboard */}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            
+            {/* 404 or redirect for any other unknown path */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>
         <Footer />

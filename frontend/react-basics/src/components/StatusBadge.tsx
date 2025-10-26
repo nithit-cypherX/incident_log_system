@@ -1,14 +1,13 @@
 // import React from 'react';
 
-// Define the props for this component
+// 💡 FIXED: 'other' removed from type
 type BadgeProps = {
   text: string;
-  // Define the allowed types for status/priority
   type: 'active' | 'closed' | 'pending' | 'high' | 'medium' | 'low';
 };
 
 const StatusBadge = ({ text, type }: BadgeProps) => {
-  // An object to map types to their specific Tailwind CSS classes
+  // 💡 FIXED: 'other' removed from colorMap
   const colorMap = {
     active: 'bg-[#DC3545] text-white',
     closed: 'bg-[#28A745] text-white',
@@ -21,9 +20,12 @@ const StatusBadge = ({ text, type }: BadgeProps) => {
   // Base classes for all badges
   const baseClasses = "py-1 px-3 rounded-full text-xs font-semibold";
 
+  // Handle a type that might not be in the map
+  const colorClasses = colorMap[type] || 'bg-gray-500 text-white';
+
   return (
     // Combine the base classes with the specific color class
-    <span className={`${baseClasses} ${colorMap[type]}`}>
+    <span className={`${baseClasses} ${colorClasses}`}>
       {text}
     </span>
   );
