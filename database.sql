@@ -33,9 +33,16 @@ CREATE TABLE users (
 -- 3️⃣ incidents
 CREATE TABLE incidents (
   id INT PRIMARY KEY AUTO_INCREMENT,
-  incident_type ENUM('Fire', 'EMS', 'Rescue', 'HAZMAT', 'Public_Assist', 'Other') NOT NULL,
-  status ENUM('Active', 'Pending', 'Closed', 'Under_Investigation') NOT NULL DEFAULT 'Active',
-  priority ENUM('High', 'Medium', 'Low') NOT NULL DEFAULT 'Medium',
+  
+  incident_code VARCHAR(50) UNIQUE NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  incident_type ENUM('fire', 'ems', 'rescue', 'hazmat', 'public_assist', 'other') NOT NULL,
+  
+  -- 🌟 UPDATED: 'other' has been removed from the list
+  status ENUM('active', 'pending', 'closed') NOT NULL DEFAULT 'active',
+  
+  priority ENUM('high', 'medium', 'low') NOT NULL DEFAULT 'medium',
+  
   address VARCHAR(255) NOT NULL,
   city VARCHAR(100),
   state VARCHAR(100),
@@ -122,18 +129,8 @@ CREATE TABLE notifications (
   FOREIGN KEY (incident_id) REFERENCES incidents(id)
 );
 
--- 🔟 incident_logs
-CREATE TABLE incident_logs (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  incident_id INT NOT NULL,
-  user_id INT NOT NULL,
-  action_description VARCHAR(500) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (incident_id) REFERENCES incidents(id),
-  FOREIGN KEY (user_id) REFERENCES users(id)
-) COMMENT='This table powers the "Timeline" or "Activity Feed" on the Incident Details page.';
 
-
+-- --- SAMPLE DATA ---
 
 INSERT INTO stations (name, address, city, state, zip_code)
 VALUES
@@ -151,21 +148,33 @@ VALUES
 ('Emily Davis', 'emily.davis@firedept.com', 'hashed_321', 'Firefighter', 'Junior Firefighter', 2, 'Inactive', 'Off_Duty'),
 ('Robert Brown', 'robert.brown@firedept.com', 'hashed_654', 'Firefighter', 'Driver', 3, 'Active', 'Assigned_to_Incident');
 
-INSERT INTO incidents (incident_type, status, priority, address, city, state, zip_code, latitude, longitude, description, created_by_user_id)
+INSERT INTO incidents (incident_code, title, incident_type, status, priority, address, city, state, zip_code, latitude, longitude, description, created_by_user_id)
 VALUES
-('Fire', 'Active', 'High', '45 Rama IX Rd', 'Bangkok', 'Bangkok', '10310', 13.7563, 100.5018, 'Warehouse fire near Rama IX', 2),
-('EMS', 'Pending', 'Medium', '12 Sukhumvit Soi 11', 'Bangkok', 'Bangkok', '10110', 13.7429, 100.5530, 'Traffic accident with injuries', 1),
-('Rescue', 'Closed', 'Low', '100 Beach Rd', 'Phuket', 'Phuket', '83000', 7.8804, 98.3923, 'Cat rescue from tree', 4),
-('HAZMAT', 'Under_Investigation', 'High', '300 Industrial Park', 'Chonburi', 'Chonburi', '20000', 13.3611, 100.9847, 'Chemical leak report', 2),
-('Public_Assist', 'Active', 'Low', '25 Market St', 'Chiang Mai', 'Chiang Mai', '50000', 18.7883, 98.9853, 'Elderly assistance call', 1);
+('INC-2025-00001', 'Warehouse fire near Rama IX', 'fire', 'active', 'high', '45 Rama IX Rd', 'Bangkok', 'Bangkok', '10310', 13.7563, 100.5018, 'Large warehouse fire reported by multiple callers.', 2),
+('INC-2025-00002', 'Traffic accident with injuries', 'ems', 'pending', 'medium', '12 Sukhumvit Soi 11', 'Bangkok', 'Bangkok', '10110', 13.7429, 100.5530, 'Two-vehicle T-bone collision.', 1),
+('INC-2025-00003', 'Cat rescue from tree', 'rescue', 'closed', 'low', '100 Beach Rd', 'Phuket', 'Phuket', '83000', 7.8804, 98.3923, 'Local resident reported a cat stuck in a tree for 24 hours.', 4),
+-- 🌟 UPDATED: This now uses 'closed' which is a valid type
+('INC-2025-00004', 'Chemical leak report', 'hazmat', 'closed', 'high', '300 Industrial Park', 'Chonburi', 'Chonburi', '20000', 13.3611, 100.9847, 'Reports of a strange smell and visible fumes from a factory.', 2),
+('INC-2025-00005', 'Elderly assistance call', 'public_assist', 'active', 'low', '25 Market St', 'Chiang Mai', 'Chiang Mai', '50000', 18.7883, 98.9853, 'Elderly person fell, needs help getting up. No injuries reported.', 1);
 
+-- 🌟 UPDATED: Added more crew members to incidents 1, 2, 4, and 5
 INSERT INTO incident_personnel (incident_id, user_id, role_on_incident)
 VALUES
+-- Incident 1: Warehouse fire (3 people)
 (1, 1, 'Firefighter'),
 (1, 2, 'Captain'),
+(1, 5, 'Driver'),
+-- Incident 2: EMS (2 people)
 (2, 5, 'Firefighter'),
+(2, 4, 'EMT'),
+-- Incident 3: Cat rescue (1 person)
 (3, 4, 'Firefighter'),
-(4, 1, 'Firefighter');
+-- Incident 4: HAZMAT (3 people)
+(4, 1, 'Firefighter'),
+(4, 2, 'Scene Commander'),
+(4, 5, 'HAZMAT Tech'),
+-- Incident 5: Elderly assist (1 person)
+(5, 1, 'Firefighter');
 
 INSERT INTO equipment (asset_id, type, station_id, status, last_maintenance_date)
 VALUES
@@ -206,11 +215,3 @@ VALUES
 (5, 2, 'You are assigned to EMS response', 'Read'),
 (4, 3, 'Incident #3 closed successfully', 'Unread'),
 (1, 4, 'New incident requires HAZMAT response', 'Unread');
-
-INSERT INTO incident_logs (incident_id, user_id, action_description)
-VALUES
-(1, 2, 'Captain Sarah Johnson created the incident report.'),
-(1, 1, 'John Miller updated the status to Active.'),
-(2, 5, 'Robert Brown responded to EMS incident.'),
-(3, 4, 'Emily Davis marked the incident as Closed.'),
-(4, 2, 'Sarah Johnson assigned HAZMAT unit.');

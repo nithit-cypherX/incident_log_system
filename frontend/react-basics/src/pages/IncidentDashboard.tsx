@@ -1,35 +1,37 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+// 🌟 1. Import useNavigate
+import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import StatusBadge from "../components/StatusBadge";
 import {
   FaPlus,
   FaSearch,
   FaRedo,
-  FaEye,
   FaSort,
   FaSortUp,
   FaSortDown,
 } from "react-icons/fa";
 
 // Types
+// 💡 FIXED: This now matches your database ENUM
 type IncidentStatus = "active" | "closed" | "pending";
 type IncidentPriority = "high" | "medium" | "low";
 
+// This is the shape of data we *want* to use in our component
 type Incident = {
-  id: string;
-  type: string;
-  date: string;
+  // 🌟 2. Added db_id to store the real database ID (e.g., 1, 2, 3)
+  db_id: number;
+  id: string; // This will hold the `incident_code` (e.g., "INC-2025-00001")
+  type: string; // This will hold the `incident_type`
+  date: string; // This will hold the formatted `reported_at`
   address: string;
   status: IncidentStatus;
-  crew: string;
   priority: IncidentPriority;
 };
 
 type FilterState = {
   status: string;
   incidentType: string;
-  dateRange: string;
-  assignedCrew: string;
   priority: string;
 };
 
@@ -38,8 +40,6 @@ type SortDirection = "ascending" | "descending";
 const defaultFilters: FilterState = {
   status: "all",
   incidentType: "all",
-  dateRange: "all",
-  assignedCrew: "all",
   priority: "all",
 };
 
@@ -74,66 +74,33 @@ const FilterDropdown = ({
   </div>
 );
 
-// --- Mock Data ---
-const mockIncidents: Incident[] = [
-  {
-    id: "INC-2023-00123",
-    type: "Fire",
-    date: "2023-10-26 14:30",
-    address: "123 Main St, Anytown",
-    status: "active",
-    crew: "Engine 1",
-    priority: "high",
-  },
-  {
-    id: "INC-2023-00122",
-    type: "EMS",
-    date: "2023-10-26 11:15",
-    address: "456 Oak Ave, Sector 4",
-    status: "closed",
-    crew: "Medic 2",
-    priority: "medium",
-  },
-  {
-    id: "INC-2023-00121",
-    type: "Rescue",
-    date: "2023-10-25 09:05",
-    address: "789 Pine Ln, Downtown",
-    status: "pending",
-    crew: "Rescue 1",
-    priority: "medium",
-  },
-  {
-    id: "INC-2023-00120",
-    type: "HAZMAT",
-    date: "2023-10-24 17:45",
-    address: "101 Industrial Pkwy",
-    status: "closed",
-    crew: "HAZMAT 1",
-    priority: "low",
-  },
-  {
-    id: "INC-2023-00119",
-    type: "Fire",
-    date: "2023-10-23 08:20",
-    address: "555 Elm St, Uptown",
-    status: "active",
-    crew: "Engine 2",
-    priority: "high",
-  },
-  {
-    id: "INC-2023-00118",
-    type: "EMS",
-    date: "2023-10-22 16:55",
-    address: "222 Maple Dr, Westside",
-    status: "closed",
-    crew: "Medic 3",
-    priority: "low",
-  },
-];
+// --- 🌟 NEW: Helper function to format date string ---
+const formatDate = (isoString: string) => {
+  if (!isoString) return "N/A";
+  try {
+    const d = new Date(isoString);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  } catch (e) {
+    console.error("Invalid date:", isoString);
+    return "Invalid Date";
+  }
+};
 
 // --- Main Page Component ---
 const IncidentDashboard = () => {
+  // 🌟 3. Initialize the navigate function
+  const navigate = useNavigate();
+
+  // --- 🌟 NEW: State for API data, loading, and errors ---
+  const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   // State for filters
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
@@ -145,6 +112,50 @@ const IncidentDashboard = () => {
     key: "date",
     direction: "descending",
   });
+
+  // --- 🌟 NEW: useEffect to fetch data from your API ---
+  useEffect(() => {
+    const fetchIncidents = async () => {
+      try {
+        // ✅ This endpoint is correct per your server.js
+        const response = await fetch("http://localhost:3000/api/v1/incidents");
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const dbData = await response.json();
+
+        // 💡 Transform the DB data to match our frontend `Incident` type
+        const formattedIncidents: Incident[] = dbData.map((item: any) => ({
+          // 🌟 4. Store both the real ID and the display ID
+          db_id: item.id, // The real database ID (e.g., 1)
+          id: item.incident_code, // The display ID (e.g., "INC-...")
+          type: item.incident_type,
+          date: formatDate(item.reported_at),
+          address: item.address,
+          status: item.status,
+          priority: item.priority,
+        }));
+
+        setAllIncidents(formattedIncidents);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchIncidents();
+  }, []); // The empty `[]` means this runs only ONCE when the page loads
+
+  // 🌟 5. Create a function to handle the row click
+  const handleRowClick = (id: number) => {
+    // This will change the URL to "/incident/1" (or 2, 3, etc.)
+    navigate(`/incident/${id}`);
+  };
 
   // Handle filter changes
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -178,8 +189,9 @@ const IncidentDashboard = () => {
 
   // Helper to get status sort order
   const getStatusOrder = (status: IncidentStatus): number => {
+    // 💡 FIXED: Removed 'under_investigation'
     const order = { active: 1, pending: 2, closed: 3 };
-    return order[status];
+    return order[status] || 99; // Fallback
   };
 
   // Helper to get priority sort order
@@ -188,27 +200,10 @@ const IncidentDashboard = () => {
     return order[priority];
   };
 
-  // Helper to check date range
-  const isInDateRange = (dateString: string, range: string): boolean => {
-    if (range === "all") return true;
-
-    const incidentDate = new Date(dateString);
-    const today = new Date();
-    const daysDiff = Math.floor(
-      (today.getTime() - incidentDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-
-    if (range === "today") {
-      return daysDiff === 0;
-    } else if (range === "week") {
-      return daysDiff <= 7;
-    }
-    return true;
-  };
-
   // Filter and sort incidents
   const filteredAndSortedIncidents = useMemo(() => {
-    let result = [...mockIncidents];
+    // 🌟 UPDATED: Use `allIncidents` (from API) instead of `mockIncidents`
+    let result = [...allIncidents];
 
     // Apply status filter
     if (filters.status !== "all") {
@@ -225,20 +220,6 @@ const IncidentDashboard = () => {
       );
     }
 
-    // Apply date range filter
-    if (filters.dateRange !== "all") {
-      result = result.filter((incident) =>
-        isInDateRange(incident.date, filters.dateRange)
-      );
-    }
-
-    // Apply crew filter
-    if (filters.assignedCrew !== "all") {
-      result = result.filter(
-        (incident) => incident.crew === filters.assignedCrew
-      );
-    }
-
     // Apply priority filter
     if (filters.priority !== "all") {
       result = result.filter(
@@ -249,6 +230,9 @@ const IncidentDashboard = () => {
     // Apply sorting
     result.sort((a, b) => {
       const key = sortConfig.key;
+
+      if (!a.hasOwnProperty(key) || !b.hasOwnProperty(key)) return 0;
+
       let aValue: string | number = a[key];
       let bValue: string | number = b[key];
 
@@ -261,7 +245,7 @@ const IncidentDashboard = () => {
         bValue = getStatusOrder(b.status);
       } else if (key === "priority") {
         aValue = getPriorityOrder(a.priority);
-        bValue = getPriorityOrder(b.priority);
+        bValue = getPriorityOrder(a.priority);
       }
 
       if (aValue < bValue) {
@@ -274,7 +258,8 @@ const IncidentDashboard = () => {
     });
 
     return result;
-  }, [filters, sortConfig]);
+    // 🌟 UPDATED: Add `allIncidents` to the dependency array
+  }, [filters, sortConfig, allIncidents]);
 
   // Helper function to render the correct sort icon
   const getSortIcon = (key: keyof Incident) => {
@@ -296,7 +281,11 @@ const IncidentDashboard = () => {
           {/* Page Title & Button */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Incident Log</h2>
-            <button className="btn-main-red py-2 px-4 rounded-md">
+            {/* 💡 This button should probably navigate to /incident/new */}
+            <button
+              onClick={() => navigate("/incident/new")}
+              className="btn-main-red py-2 px-4 rounded-md"
+            >
               <FaPlus className="mr-2" />
               Log New Incident
             </button>
@@ -317,7 +306,7 @@ const IncidentDashboard = () => {
             </div>
 
             {/* Filter Panel */}
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <FilterDropdown
                 label="Status"
                 name="status"
@@ -328,6 +317,7 @@ const IncidentDashboard = () => {
                 <option value="active">Active</option>
                 <option value="closed">Closed</option>
                 <option value="pending">Pending</option>
+                {/* 💡 FIXED: Removed 'under_investigation' */}\
               </FilterDropdown>
 
               <FilterDropdown
@@ -341,32 +331,8 @@ const IncidentDashboard = () => {
                 <option value="ems">EMS</option>
                 <option value="rescue">Rescue</option>
                 <option value="hazmat">HAZMAT</option>
-              </FilterDropdown>
-
-              <FilterDropdown
-                label="Date Range"
-                name="dateRange"
-                value={filters.dateRange}
-                onChange={handleFilterChange}
-              >
-                <option value="all">All Time</option>
-                <option value="today">Today</option>
-                <option value="week">Last 7 Days</option>
-              </FilterDropdown>
-
-              <FilterDropdown
-                label="Assigned Crew"
-                name="assignedCrew"
-                value={filters.assignedCrew}
-                onChange={handleFilterChange}
-              >
-                <option value="all">All</option>
-                <option value="Engine 1">Engine 1</option>
-                <option value="Engine 2">Engine 2</option>
-                <option value="Medic 2">Medic 2</option>
-                <option value="Medic 3">Medic 3</option>
-                <option value="Rescue 1">Rescue 1</option>
-                <option value="HAZMAT 1">HAZMAT 1</option>
+                <option value="public_assist">Public Assist</option>
+                <option value="other">Other</option>
               </FilterDropdown>
 
               <FilterDropdown
@@ -424,16 +390,10 @@ const IncidentDashboard = () => {
                     Address {getSortIcon("address")}
                   </th>
                   <th
-                    className="p-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-[#434a52]"
+                    className="p-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-[#434a5c]"
                     onClick={() => handleSort("status")}
                   >
                     Status {getSortIcon("status")}
-                  </th>
-                  <th
-                    className="p-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-[#434a52]"
-                    onClick={() => handleSort("crew")}
-                  >
-                    Crew {getSortIcon("crew")}
                   </th>
                   <th
                     className="p-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-[#434a52]"
@@ -441,18 +401,35 @@ const IncidentDashboard = () => {
                   >
                     Priority {getSortIcon("priority")}
                   </th>
-                  <th className="p-3 text-left text-xs font-bold uppercase tracking-wider">
-                    Action
-                  </th>
                 </tr>
               </thead>
 
-              {/* Table Body */}
+              {/* Table Body - 🌟 UPDATED with Loading/Error/Data states */}
               <tbody>
-                {filteredAndSortedIncidents.length > 0 ? (
+                {isLoading ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-secondary-color"
+                    >
+                      Loading incidents...
+                    </td>
+                  </tr>
+                ) : error ? (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="p-8 text-center text-red-400"
+                    >
+                      Error fetching data: {error}
+                    </td>
+                  </tr>
+                ) : filteredAndSortedIncidents.length > 0 ? (
                   filteredAndSortedIncidents.map((incident) => (
+                    // 🌟 6. Added onClick and cursor-pointer
                     <tr
-                      key={incident.id}
+                      key={incident.id} // Use the unique incident_code
+                      onClick={() => handleRowClick(incident.db_id)}
                       className="border-b border-[#495057] hover:bg-[#3A3F44] transition-colors cursor-pointer"
                     >
                       <td className="p-3 text-sm">{incident.id}</td>
@@ -463,12 +440,11 @@ const IncidentDashboard = () => {
                         <StatusBadge
                           text={
                             incident.status.charAt(0).toUpperCase() +
-                            incident.status.slice(1)
+                            incident.status.slice(1).replace("_", " ")
                           }
                           type={incident.status}
                         />
                       </td>
-                      <td className="p-3 text-sm">{incident.crew}</td>
                       <td className="p-3 text-sm">
                         <StatusBadge
                           text={
@@ -478,15 +454,12 @@ const IncidentDashboard = () => {
                           type={incident.priority}
                         />
                       </td>
-                      <td className="p-3 text-sm text-center text-[#ADB5BD]">
-                        <FaEye className="hover:text-white inline cursor-pointer" />
-                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td
-                      colSpan={8}
+                      colSpan={6}
                       className="p-8 text-center text-secondary-color"
                     >
                       No incidents found matching your filters.
@@ -500,8 +473,9 @@ const IncidentDashboard = () => {
           {/* Pagination Controls */}
           <div className="flex items-center justify-between mt-6 text-sm">
             <span className="text-secondary-color">
+              {/* 🌟 UPDATED: Show count from `allIncidents` state */}
               Showing {filteredAndSortedIncidents.length} of{" "}
-              {mockIncidents.length} Incidents
+              {allIncidents.length} Incidents
             </span>
             <div className="flex gap-2">
               <button

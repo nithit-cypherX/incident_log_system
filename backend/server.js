@@ -98,6 +98,20 @@ app.post('/logout', (req, res) => {
 
 
 // 2. Incident Endpoints (for Pages 3, 4, 5)
+app.get('/api/v1/incidents', (req, res) => {
+    // At least add a reasonable limit
+    const query = `SELECT * FROM incidents ORDER BY id DESC LIMIT 1000`;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ error: 'Database error' });
+        }
+
+        return res.json(results);
+    });
+});
+
 app.post('/api/v1/incidents/search', (req, res) => {
     const { status, type, search } = req.body;
 

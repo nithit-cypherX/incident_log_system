@@ -1,26 +1,23 @@
 import React from 'react';
 import { FaUserEdit, FaUsers } from 'react-icons/fa';
 
-type CrewMember = {
-  name: string;
-  role: string;
-  status: "On Scene" | "En Route" | "Staging";
+// 🌟 NEW: Define the shape of the personnel data we expect from the API
+type Personnel = {
+  user_id: number;
+  user_name: string;
+  role_on_incident: string;
 };
 
-const mockCrew: CrewMember[] = [
-  { name: "Ethan Carter", role: "Captain", status: "On Scene" },
-  { name: "Olivia Bennett", role: "Firefighter", status: "On Scene" },
-  { name: "Noah Thompson", role: "Firefighter", status: "On Scene" },
-];
+// 🌟 NEW: Define the props for this component
+type CrewProps = {
+  crew: Personnel[]; // It expects an array of personnel
+};
 
-// Small component for the green "On Scene" badge
-const StatusBadge = ({ status }: { status: CrewMember['status'] }) => (
-  <span className="px-2 py-0.5 bg-green-600 text-white rounded-full text-xs font-medium">
-    {status}
-  </span>
-);
+// 🌟 REMOVED: mockCrew array
 
-const CurrentCrew = () => {
+// 🌟 REMOVED: Internal StatusBadge component (no longer needed)
+
+const CurrentCrew = ({ crew }: CrewProps) => { // 🌟 UPDATED: Accept 'crew' prop
   return (
     <div className="bg-[#2C3034] p-6 rounded-lg shadow-lg h-full">
       <h3 className="text-xl font-bold text-[#F8F9FA] mb-5">
@@ -28,24 +25,28 @@ const CurrentCrew = () => {
       </h3>
       
       <div className="space-y-4">
-        {/* Header Row */}
-        <div className="grid grid-cols-3 gap-4 text-sm font-medium text-[#ADB5BD] border-b border-[#495057] pb-2">
+        {/* 🌟 UPDATED: Header Row (removed Status) */}
+        <div className="grid grid-cols-2 gap-4 text-sm font-medium text-[#ADB5BD] border-b border-[#495057] pb-2">
           <span>NAME</span>
           <span>ROLE</span>
-          <span>STATUS</span>
         </div>
         
-        {/* List of Crew Members */}
-        {mockCrew.map((member) => (
-          <div key={member.name} className="grid grid-cols-3 gap-4 items-center">
-            <span className="text-[#F8F9FA] font-medium">{member.name}</span>
-            <span className="text-[#ADB5BD]">{member.role}</span>
-            <StatusBadge status={member.status} />
-          </div>
-        ))}
+        {/* 🌟 UPDATED: List of Crew Members from props */}
+        {crew.length > 0 ? (
+          crew.map((member) => (
+            <div key={member.user_id} className="grid grid-cols-2 gap-4 items-center">
+              <span className="text-[#F8F9FA] font-medium">{member.user_name}</span>
+              <span className="text-[#ADB5BD]">{member.role_on_incident}</span>
+            </div>
+          ))
+        ) : (
+          <p className="text-[#ADB5BD] text-sm text-center py-4">
+            No personnel assigned to this incident.
+          </p>
+        )}
       </div>
 
-      {/* Buttons at the bottom */}
+      {/* Buttons at the bottom (no change) */}
       <div className="flex gap-4 mt-6 pt-6 border-t border-[#495057]">
         <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-md transition-colors flex items-center justify-center">
           <FaUserEdit className="mr-2" /> Edit Incident
