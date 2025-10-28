@@ -48,9 +48,6 @@ const CurrentCrew = ({ crew }: CrewProps) => { // 🌟 UPDATED: Accept 'crew' pr
 
       {/* Buttons at the bottom (no change) */}
       <div className="flex gap-4 mt-6 pt-6 border-t border-[#495057]">
-        <button className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-4 rounded-md transition-colors flex items-center justify-center">
-          <FaUserEdit className="mr-2" /> Edit Incident
-        </button>
         <button className="flex-1 bg-[#0D6EFD] hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md transition-colors flex items-center justify-center">
           <FaUsers className="mr-2" /> Manage Crew
         </button>

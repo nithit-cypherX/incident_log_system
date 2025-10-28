@@ -6,39 +6,7 @@ import {
 } from 'react-icons/fa';
 // Import the new external component
 import IncidentStatistics from '../components/IncidentStatistics';
-
-// --- Sub-component 1: DashboardHeader ---
-const DashboardHeader = () => {
-  return (
-    <header className="bg-[#343A40] text-[#F8F9FA] p-4 flex items-center justify-between border-b border-[#495057]">
-      <div className="flex items-center">
-        <div className="h-10 w-10 rounded-md bg-red-600 flex items-center justify-center mr-3">
-          <FaFire size={24} />
-        </div>
-        <h1 className="text-xl font-bold">Incident Log System</h1>
-      </div>
-      <div className="flex items-center gap-6">
-        <button className="relative text-[#ADB5BD] hover:text-white">
-          <FaBell size={20} />
-          <span className="absolute -top-2 -right-2 bg-blue-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-            3
-          </span>
-        </button>
-        <button className="relative text-[#ADB5BD] hover:text-white">
-          <FaExclamationTriangle size={20} />
-          <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-            1
-          </span>
-        </button>
-        <div className="flex items-center gap-2 text-white cursor-pointer">
-          <FaUserCircle size={28} />
-          <span>John Doe</span>
-          <FaChevronDown size={14} />
-        </div>
-      </div>
-    </header>
-  );
-};
+import NavBar from "../components/NavBar";
 
 // --- Sub-component 2: StatCard ---
 type StatCardProps = {
@@ -81,7 +49,7 @@ const QuickActions = () => {
 const DashboardPage = () => {
   return (
     <div className="min-h-screen bg-[#212529] text-[#F8F9FA] font-sans flex flex-col">
-      <DashboardHeader />
+      <NavBar />
       
       <main className="flex-grow p-8 overflow-y-auto space-y-8">
         {/* Top Stat Cards */}

@@ -1,13 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom"; // Import hooks for routing
+import { useState, useEffect } from "react";
+// 🌟 1. Import useNavigate
+import { useParams, Link, useNavigate } from "react-router-dom";
 import CurrentCrew from "../components/CurrentCrew";
-import IncidentTabs from "../components/IncidentTabs";
+// 🌟 2. REMOVED: import IncidentTabs
 import IncidentOverview from "../components/IncidentOverview";
-import MapDisplay from "../components/MapDisplay";
-import NavBar from "../components/NavBar"; // Added for consistency
-import StatusBadge from "../components/StatusBadge"; // Import shared badge
+import NavBar from "../components/NavBar";
+import StatusBadge from "../components/StatusBadge";
+import { FaEdit, FaTrash, FaExclamationTriangle } from "react-icons/fa";
+// 🌟 3. NEW: Import placeholder components
+import IncidentLogNotes from "../components/IncidentLogNotes";
+import IncidentAttachments from "../components/IncidentAttachments";
 
-// --- 🌟 NEW: Helper function to format date string ---
+// --- Helper function to format date string (No change) ---
 const formatDate = (isoString: string) => {
   if (!isoString) return "N/A";
   try {
@@ -24,7 +28,7 @@ const formatDate = (isoString: string) => {
   }
 };
 
-// --- 🌟 NEW: Define types for our API data ---
+// --- Define types for our API data (No change) ---
 type AssignedPersonnel = {
   user_id: number;
   user_name: string;
@@ -35,17 +39,13 @@ type IncidentDetails = {
   id: number;
   incident_code: string;
   title: string;
-  // 💡 FIXED: 'other' is allowed for incident_type
-  incident_type: 'fire' | 'ems' | 'rescue' | 'hazmat' | 'public_assist' | 'other';
-  // 💡 FIXED: 'other' removed from status
-  status: 'active' | 'pending' | 'closed';
-  priority: 'high' | 'medium' | 'low';
+  incident_type: "fire" | "ems" | "rescue" | "hazmat" | "public_assist" | "other";
+  status: "active" | "pending" | "closed";
+  priority: "high" | "medium" | "low";
   address: string;
   city: string;
   state: string;
   zip_code: string;
-  latitude: number;
-  longitude: number;
   description: string;
   reported_at: string;
   created_by_user_id: number;
@@ -54,28 +54,30 @@ type IncidentDetails = {
 
 // --- Main Page Component ---
 const IncidentDetailsPage = () => {
-  // 1. Get the 'id' from the URL (e.g., /incident/:id)
   const { id } = useParams<{ id: string }>();
-  
-  // 2. Set up state for data, loading, and errors
+  const navigate = useNavigate(); // 🌟 4. Initialize navigate
+
   const [incident, setIncident] = useState<IncidentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 🌟 5. NEW: State for delete operation
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  // 3. Fetch data when the component loads
   useEffect(() => {
     const fetchIncidentDetails = async () => {
       try {
-        // ✅ This endpoint is correct per your server.js
-        const response = await fetch(`http://localhost:3000/api/v1/incidents/${id}`);
-        
+        const response = await fetch(
+          `http://localhost:3000/api/v1/incidents/${id}`
+        );
+
         if (!response.ok) {
           throw new Error(`Failed to fetch: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setIncident(data);
-        
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -86,9 +88,48 @@ const IncidentDetailsPage = () => {
     if (id) {
       fetchIncidentDetails();
     }
-  }, [id]); // Re-run this effect if the ID in the URL changes
+  }, [id]);
 
-  // 4. Show loading or error messages
+  // 🌟 6. NEW: Handle Edit Button Click
+  const handleEdit = () => {
+    navigate(`/incident/edit/${id}`);
+  };
+
+  // 🌟 7. NEW: Handle Delete Button Click
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to permanently delete this incident and all its related data (personnel, attachments)? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const response = await fetch(
+        `http://localhost:3000/api/v1/incidents/${id}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to delete incident");
+      }
+
+      // On success, navigate back to the dashboard
+      navigate("/incident-dashboard");
+    } catch (e: any) {
+      setDeleteError(e.message);
+      setIsDeleting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#212529] text-[#F8F9FA] flex justify-center items-center">
@@ -113,39 +154,85 @@ const IncidentDetailsPage = () => {
     );
   }
 
-  // 5. Render the page with real data
   return (
     <>
       <NavBar />
       <div className="min-h-screen bg-[#212529] text-[#F8F9FA] font-sans">
         <main className="p-8">
           <div className="max-w-7xl mx-auto">
-            
-            {/* Page Title Area (with real data) */}
+            {/* Page Title Area */}
             <div className="mb-6">
-              <Link to="/incident-dashboard" className="text-sm text-[#0D6EFD] hover:underline mb-2 block">
+              <Link
+                to="/incident-dashboard"
+                className="text-sm text-[#0D6EFD] hover:underline mb-2 block"
+              >
                 &larr; Back to Incident Log
               </Link>
-              <h2 className="text-3xl font-bold flex items-center">
-                {`Incident ${incident.incident_code}`}
-                <div className="ml-3">
-                  <StatusBadge
-                    text={incident.status.charAt(0).toUpperCase() + incident.status.slice(1)}
-                    type={incident.status}
-                  />
+              
+              {/* 🌟 8. NEW: Header with Buttons */}
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                {/* Left side: Title */}
+                <div>
+                  <h2 className="text-3xl font-bold flex items-center">
+                    {`Incident ${incident.incident_code}`}
+                    <div className="ml-3">
+                      <StatusBadge
+                        text={
+                          incident.status.charAt(0).toUpperCase() +
+                          incident.status.slice(1)
+                        }
+                        type={incident.status}
+                      />
+                    </div>
+                  </h2>
+                  <p className="text-lg text-[#ADB5BD] mt-1">
+                    {incident.title}
+                  </p>
                 </div>
-              </h2>
-              <p className="text-lg text-[#ADB5BD] mt-1">{incident.title}</p>
+                
+                {/* Right side: Action Buttons */}
+                <div className="flex gap-3 mt-4 md:mt-0">
+                  <button
+                    onClick={handleEdit}
+                    className="btn-main-gray py-2 px-4 rounded-md justify-center"
+                    disabled={isDeleting}
+                  >
+                    <FaEdit className="mr-2" /> Edit
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="btn-main-red py-2 px-4 rounded-md justify-center"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      "Deleting..."
+                    ) : (
+                      <>
+                        <FaTrash className="mr-2" /> Delete
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
             
-            <IncidentTabs />
+            {/* 🌟 9. NEW: Delete Error Message */}
+            {deleteError && (
+              <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-md text-red-200 flex items-center gap-3">
+                <FaExclamationTriangle />
+                <div>
+                  <strong>Error Deleting Incident:</strong> {deleteError}
+                </div>
+              </div>
+            )}
+            
+            {/* 🌟 10. REMOVED: <IncidentTabs /> */}
 
-            {/* --- 2-Column Grid Layout --- */}
+            {/* --- 2-Column Grid Layout (Redesigned) --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               
-              {/* Left Column (with real data) */}
+              {/* Left Column (Wider) */}
               <div className="lg:col-span-2 space-y-8">
-                
                 <IncidentOverview
                   incidentType={incident.incident_type}
                   location={`${incident.address}, ${incident.city}, ${incident.state}`}
@@ -154,23 +241,21 @@ const IncidentDetailsPage = () => {
                   priority={incident.priority}
                   description={incident.description}
                 />
-
-                <MapDisplay
-                  lat={incident.latitude}
-                  lon={incident.longitude}
-                />
+                
+                {/* 🌟 11. NEW: Added Log & Notes and Attachments here */}
+                <IncidentLogNotes />
+                <IncidentAttachments />
 
               </div>
 
-              {/* Right Column (with real data) */}
-              <div className="lg:col-span-1">
-                {/* Pass the real crew data from our API fetch */}
+              {/* Right Column (Narrower) */}
+              <div className="lg:col-span-1 space-y-8">
                 <CurrentCrew crew={incident.assigned_personnel} />
+                {/* You could add MapDisplay here if you re-add coordinates */}
               </div>
 
             </div>
             {/* --- End of Grid Layout --- */}
-
           </div>
         </main>
       </div>
