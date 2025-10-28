@@ -1,7 +1,31 @@
 import React from 'react';
 import { FaFire, FaBell } from 'react-icons/fa'; // Icons for logo and notifications
+// 🌟 1. Import Link and useLocation from React Router
+import { Link, useLocation } from 'react-router-dom';
 
 const NavBar = () => {
+  // 🌟 2. Get the current location object
+  const location = useLocation();
+  const currentPath = location.pathname; // This gives us the current URL path (e.g., "/dashboard")
+
+  // 🌟 3. Define the different styles for our links
+  const baseLinkClass = "hover:text-white transition-colors";
+  const activeLinkClass = "text-white font-semibold border-b-2 border-[#1D63FF] pb-1";
+  const inactiveLinkClass = "text-[#A0B0C0] font-medium";
+  
+  /**
+   * 🌟 4. Helper function to check if a path is active.
+   * We use 'startsWith' so that a path like "/incident/1"
+   * will still count as being part of the "/incident-dashboard" section.
+   */
+  const isPathActive = (path: string) => {
+    if (path === "/dashboard") {
+      return currentPath === path;
+    }
+    // Check for /incident-dashboard, /incident/new, or /incident/:id
+    return currentPath.startsWith("/incident");
+  }
+
   return (
     // Main navbar container
     <nav className="w-full bg-[#1A2C3D] text-white p-4 flex items-center justify-between border-b border-[#34404E]">
@@ -16,17 +40,33 @@ const NavBar = () => {
       </div>
 
       {/* Middle: Navigation Links */}
-      <div className="flex items-center space-x-6 text-[#A0B0C0] font-medium">
-        <a href="#" className="hover:text-white transition-colors">
+      <div className="flex items-center space-x-6">
+        
+        {/* 🌟 5. Use <Link> instead of <a> and set classes dynamically */}
+        <Link 
+          to="/dashboard" 
+          className={`
+            ${baseLinkClass} 
+            ${currentPath === '/dashboard' ? activeLinkClass : inactiveLinkClass}
+          `}
+        >
           Dashboard
-        </a>
-        <a href="#" className="text-white font-semibold border-b-2 border-[#1D63FF] pb-1">
+        </Link>
+        
+        <Link 
+          to="/incident-dashboard" 
+          className={`
+            ${baseLinkClass} 
+            ${isPathActive('/incident') ? activeLinkClass : inactiveLinkClass}
+          `}
+        >
           Incident Log
-        </a>
+        </Link>
+        
         {/* You can add these later
-        <a href="#" className="hover:text-white transition-colors">Resources</a>
-        <a href="#" className="hover:text-white transition-colors">Training</a>
-        <a href="#" className="hover:text-white transition-colors">Reports</a>
+        <Link to="#" className={`${baseLinkClass} ${inactiveLinkClass}`}>Resources</Link>
+        <Link to="#" className={`${baseLinkClass} ${inactiveLinkClass}`}>Training</Link>
+        <Link to="#" className={`${baseLinkClass} ${inactiveLinkClass}`}>Reports</Link>
         */}
       </div>
 

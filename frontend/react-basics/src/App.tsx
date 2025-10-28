@@ -39,6 +39,10 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            
+            {/* --- UPDATED ROUTES --- */}
+            
+            {/* CREATE: /incident/new */}
             <Route
               path="/incident/new"
               element={
@@ -48,8 +52,17 @@ function App() {
               }
             />
             
-            {/* 🌟 NEW: This is the dynamic route for the details page */}
-            {/* It will match /incident/1, /incident/2, etc. */}
+            {/* 🌟 NEW: EDIT route also uses NewIncidentPage */}
+            <Route
+              path="/incident/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <NewIncidentPage />
+                </ProtectedRoute>
+              }
+            />
+            
+            {/* DETAILS: /incident/:id */}
             <Route
               path="/incident/:id"
               element={
@@ -58,6 +71,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* --- END OF UPDATED ROUTES --- */}
+
 
             {/* Redirect root to the main dashboard */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
