@@ -1,25 +1,55 @@
-import React from 'react';
-import ChartPlaceholder from './ChartPlaceholder';
-import RecentActivity from './RecentActivity';
+// src/components/IncidentStatistics.tsx
 
-const IncidentStatistics = () => {
+// 1. Remove the unused 'React' import
+import RecentActivity from './RecentActivity';
+import IncidentTypeChart from './IncidentTypeChart';
+import ChartPlaceholder from './ChartPlaceholder';
+
+// 🌟 2. ADD THE MISSING TYPE DEFINITIONS
+type IncidentTypeData = {
+  incident_type: string;
+  count: number;
+};
+
+type IncidentStatisticsProps = {
+  incidentTypeData: IncidentTypeData[] | undefined;
+  incidentsTodayData: number | undefined;
+  loading: boolean;
+};
+// ------------------------------------
+
+const IncidentStatistics = ({
+  incidentTypeData,
+  incidentsTodayData,
+  loading,
+}: IncidentStatisticsProps) => { // 3. Now this type is found!
+
+  // Log the data to show we have it
+  console.log("Data for 'Incidents Today' chart:", incidentsTodayData);
+  console.log("Data for 'Incidents by Type' chart:", incidentTypeData);
+
   return (
     <section>
-      <h2 className="text-lg font-semibold text-white mb-4">Incident Statistics</h2>
+      <h2 className="text-lg font-semibold text-white mb-4">
+        Incident Statistics
+      </h2>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
         {/* Column 1 */}
         <div className="space-y-8">
-          <ChartPlaceholder title="Incidents Today vs. Average" />
-          {/* "Incidents Statuses" chart removed from here */}
+          {/* You can use 'incidentsTodayData' to build a chart here */}
+          <ChartPlaceholder title="Incidents Today" />
         </div>
-        
+
         {/* Column 2 */}
         <div className="space-y-8">
-          <ChartPlaceholder title="Incidents by Type (last 7 days)" />
-          {/* "Crew Availability Overview" ca   hart removed from here */}
+          {/* This logic correctly checks for data */}
+          {loading || !incidentTypeData ? (
+            <ChartPlaceholder title="Incidents by Type" />
+          ) : (
+            <IncidentTypeChart chartData={incidentTypeData} />
+          )}
         </div>
-        
+
         {/* Column 3 */}
         <div className="lg:col-span-1">
           <RecentActivity />

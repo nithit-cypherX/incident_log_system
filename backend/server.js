@@ -109,6 +109,31 @@ app.get("/api/v1/incidents", (req, res) => {
   });
 });
 
+// 🌟 --- NEW: RECENT ACTIVITY ENDPOINT --- 🌟
+app.get("/api/v1/incidents/recent-activity", (req, res) => {
+  // Gets the 5 most recently created or updated incidents
+  const query = `
+    SELECT 
+      id, 
+      incident_code, 
+      title, 
+      status,
+      updated_at 
+    FROM incidents 
+    ORDER BY updated_at DESC 
+    LIMIT 3
+  `;
+  
+  db.query(query, (err, results) => {
+     if (err) {
+      console.error("Database error:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    return res.json(results);
+  });
+});
+
+
 app.post("/api/v1/incidents/search", (req, res) => {
   const { status, type, search } = req.body;
 
@@ -751,7 +776,8 @@ app.get("/api/v1/notifications/:id", async (req, res) => {
         [userId]
       );
     res.json(notifications);
-  } catch (err) {
+  } catch (err)
+  {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
@@ -797,54 +823,53 @@ app.post("/api/v1/notifications/mark-all-read/:id", async (req, res) => {
 
 // 6. Dashboard & Report Endpoints (for Pages 2 & 7)
 // *GET /api/v1/dashboard/stats**
+// 🌟 --- UPDATED DASHBOARD STATS ENDPOINT --- 🌟
 app.get("/api/v1/dashboard/stats", async (req, res) => {
   try {
     const promisePool = db.promise();
 
     // Active incidents
     const [activeIncidents] = await promisePool.execute(`
-            SELECT COUNT(*) AS count FROM incidents WHERE status = 'Active'
-        `);
+      SELECT COUNT(*) AS count FROM incidents WHERE status = 'active'
+    `);
 
-    // Unread notifications (alerts)
-    // This query will fail if 'notifications' table doesn't exist.
-    let unreadAlertsCount = 0;
-    try {
-      const [unreadAlerts] = await promisePool.execute(`
-            SELECT COUNT(*) AS count FROM notifications WHERE status = 'Unread'
-        `);
-      unreadAlertsCount = unreadAlerts[0].count;
-    } catch (e) {
-      console.error("Could not query notifications, table might be missing.");
-    }
-
+    // 🌟 NEW: Pending incidents (replaces unreadAlerts)
+    const [pendingIncidents] = await promisePool.execute(`
+      SELECT COUNT(*) AS count FROM incidents WHERE status = 'pending'
+    `);
+    
+    // 🌟 NEW: Incidents in the last 24 hours (for graph)
+    const [incidentsToday] = await promisePool.execute(`
+      SELECT COUNT(*) AS count FROM incidents WHERE reported_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+    `);
 
     // Available crews (firefighters)
     const [crewsAvailable] = await promisePool.execute(`
-            SELECT COUNT(*) AS count FROM users WHERE availability_status = 'Available'
-        `);
+      SELECT COUNT(*) AS count FROM users WHERE availability_status = 'Available'
+    `);
 
     // Equipment in use
     const [equipmentInUse] = await promisePool.execute(`
-            SELECT COUNT(*) AS count FROM equipment WHERE status = 'In_Use'
-        `);
+      SELECT COUNT(*) AS count FROM equipment WHERE status = 'In_Use'
+    `);
 
     // Total incidents (all time)
     const [totalIncidents] = await promisePool.execute(`
-            SELECT COUNT(*) AS count FROM incidents
-        `);
+      SELECT COUNT(*) AS count FROM incidents
+    `);
 
-    // Breakdown by incident type (for report page)
+    // Breakdown by incident type (for report page / graph)
     const [incidentTypeBreakdown] = await promisePool.execute(`
-            SELECT incident_type, COUNT(*) AS count
-            FROM incidents
-            GROUP BY incident_type
-        `);
+      SELECT incident_type, COUNT(*) AS count
+      FROM incidents
+      GROUP BY incident_type
+    `);
 
     // Combine everything neatly
     res.json({
       activeIncidents: activeIncidents[0].count,
-      unreadAlerts: unreadAlertsCount,
+      pendingIncidents: pendingIncidents[0].count, // 🌟 NEW
+      incidentsToday: incidentsToday[0].count, // 🌟 NEW
       crewsAvailable: crewsAvailable[0].count,
       equipmentInUse: equipmentInUse[0].count,
       totalIncidents: totalIncidents[0].count,
@@ -1064,7 +1089,7 @@ app.delete("/api/v1/admin/users/:id", requireAdmin, (req, res) => {
   const sql = `DELETE FROM users WHERE id = ?`;
 
   db.query(sql, [userId], (err, result) => {
-    if (err) return res.status().json({ message: "Database error" });
+    if (err) return res.status(500).json({ message: "Database error" });
     if (result.affectedRows === 0)
       return res.status(404).json({ message: "User not found" });
     res.json({ message: "User DELETE successfully" });
