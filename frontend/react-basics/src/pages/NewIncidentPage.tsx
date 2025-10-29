@@ -1,8 +1,12 @@
+/* [File: src/pages/NewIncidentPage.tsx] */
 import React, { useState, useEffect } from "react";
 // 🌟 1. Import useParams to read the URL ID
 import { useNavigate, useParams } from "react-router-dom";
 import NavBar from "../components/NavBar";
-import { FaPaperclip, FaUserPlus, FaTrash } from "react-icons/fa";
+// 🌟 2. Import the component
+import IncidentAttachments from "../components/IncidentAttachments";
+// 🌟 NEW: Add FaUpload icon
+import { FaPaperclip, FaUserPlus, FaTrash, FaUpload } from "react-icons/fa";
 
 // --- Define Types ---
 type FormInputProps = {
@@ -112,10 +116,23 @@ type SelectedCrewMember = {
   role: string;
 };
 
+// 🌟 3. Add the Attachment type (copied from IncidentDetailsPage)
+type Attachment = {
+  id: number;
+  incident_id: number;
+  user_id: number;
+  original_file_name: string;
+  file_name_on_disk: string;
+  file_path_relative: string;
+  mime_type: string;
+  file_size_bytes: number;
+  uploaded_at: string;
+};
+
 // --- Main Page Component ---
 const NewIncidentPage = () => {
   const navigate = useNavigate();
-  // 🌟 2. Get 'id' from URL. It will be 'undefined' if on /incident/new
+  // 🌟 4. Get 'id' from URL. It will be 'undefined' if on /incident/new
   const { id: incidentId } = useParams<{ id: string }>();
   const isEditMode = Boolean(incidentId);
 
@@ -141,11 +158,17 @@ const NewIncidentPage = () => {
   const [selectedCrew, setSelectedCrew] = useState<SelectedCrewMember[]>([]);
   const [crewSelection, setCrewSelection] = useState({ userId: "", role: "" });
 
+  // 🌟 5. Add state for attachments
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  
+  // 🌟🌟 NEW: State to hold files for upload in CREATE mode
+  const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
+
   // State for loading and errors
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🌟 3. Fetch available crew AND existing incident data (if in edit mode)
+  // 🌟 6. Fetch available crew AND existing incident data (if in edit mode)
   useEffect(() => {
     // Fetch all available crew for the dropdown
     const fetchCrew = async () => {
@@ -198,10 +221,13 @@ const NewIncidentPage = () => {
         // Set the selected crew state
         const assignedCrew = data.assigned_personnel.map((p: any) => ({
           userId: p.user_id,
-          userName: p.user_name.split(" ")[0], // Just get first name
+          userName: p.user_name, // Use full name
           role: p.role_on_incident,
         }));
         setSelectedCrew(assignedCrew);
+        
+        // 🌟 7. NEW: Set the attachments state
+        setAttachments(data.assigned_attachments || []);
         
       } catch (err: any) {
         setError(err.message);
@@ -253,7 +279,7 @@ const NewIncidentPage = () => {
         ...prev,
         {
           userId: user.id,
-          userName: user.full_name.split(" ")[0],
+          userName: user.full_name, // Use full name
           role: role,
         },
       ]);
@@ -265,8 +291,30 @@ const NewIncidentPage = () => {
   const handleRemoveCrew = (userId: number) => {
     setSelectedCrew((prev) => prev.filter((c) => c.userId !== userId));
   };
+  
+  // 🌟🌟 NEW: Handlers for file selection in CREATE mode
+  const onFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      // Add new files to the list, avoiding duplicates
+      const newFiles = Array.from(e.target.files);
+      setFilesToUpload((prevFiles) => {
+        const existingFileNames = prevFiles.map(f => f.name);
+        const uniqueNewFiles = newFiles.filter(f => !existingFileNames.includes(f.name));
+        return [...prevFiles, ...uniqueNewFiles];
+      });
+      // Clear the input value to allow selecting the same file again if removed
+       e.target.value = "";
+    }
+  };
 
-  // 🌟 4. Main submit handler decides to CREATE or UPDATE
+  const onRemoveFile = (fileName: string) => {
+    setFilesToUpload((prevFiles) =>
+      prevFiles.filter((file) => file.name !== fileName)
+    );
+  };
+  // 🌟🌟 END NEW HANDLERS
+
+  // 🌟 8. Main submit handler decides to CREATE or UPDATE
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -289,12 +337,13 @@ const NewIncidentPage = () => {
       created_by_user_id: 1, // Placeholder
     };
     
-    // Remove the separate date/time fields as they are not in the API
     delete (incidentData as any).date;
     delete (incidentData as any).time;
     
     try {
       let response;
+      let newOrExistingId = incidentId; // Start with existing ID if in edit mode
+      
       if (isEditMode) {
         // --- UPDATE LOGIC (PUT) ---
         response = await fetch(`http://localhost:3000/api/v1/incidents/${incidentId}`, {
@@ -305,6 +354,12 @@ const NewIncidentPage = () => {
           credentials: "include",
           body: JSON.stringify(incidentData),
         });
+        
+        if (!response.ok) {
+          const result = await response.json();
+          throw new Error(result.error || "Failed to update incident");
+        }
+
       } else {
         // --- CREATE LOGIC (POST) ---
         response = await fetch("http://localhost:3000/api/v1/incidents/create", {
@@ -315,20 +370,45 @@ const NewIncidentPage = () => {
           credentials: "include",
           body: JSON.stringify(incidentData),
         });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to create incident");
+        }
+        
+        newOrExistingId = result.incident_id; // Get the NEWLY created ID
+        
+        // 🌟🌟 NEW: UPLOAD FILES after creating
+        if (filesToUpload.length > 0) {
+          
+          const uploadPromises = filesToUpload.map(file => {
+            const formData = new FormData();
+            formData.append("file", file);
+            return fetch(`http://localhost:3000/api/v1/incidents/${newOrExistingId}/attachments`, {
+              method: "POST",
+              credentials: "include",
+              body: formData,
+            });
+          });
+          
+          // Wait for all uploads to finish
+          const uploadResults = await Promise.all(uploadPromises);
+
+          // Check if any uploads failed
+          const failedUploads = uploadResults.filter(res => !res.ok);
+          if (failedUploads.length > 0) {
+             // Don't stop the navigation, but warn the user in the console
+             console.error(`${failedUploads.length} files failed to upload.`);
+             // A "toast" notification would be better here, but this works
+          }
+        }
+        // 🌟🌟 END NEW UPLOAD LOGIC
       }
 
-      const result = await response.json();
+      // On success, navigate to the details page
+      navigate(`/incident/${newOrExistingId}`);
 
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to save incident");
-      }
-
-      // On success, navigate
-      if (isEditMode) {
-        navigate(`/incident/${incidentId}`); // Go back to details page
-      } else {
-        navigate("/incident-dashboard"); // Go to the list
-      }
 
     } catch (err: any) {
       setError(err.message);
@@ -346,7 +426,7 @@ const NewIncidentPage = () => {
           onSubmit={handleSubmit}
           className="max-w-4xl mx-auto bg-[#2C3034] p-6 rounded-lg shadow-lg"
         >
-          {/* 🌟 5. Dynamic Title */}
+          {/* 🌟 9. Dynamic Title */}
           <h2 className="text-2xl font-bold mb-6">
             {isEditMode ? "Edit Incident" : "New Incident Log"}
           </h2>
@@ -511,7 +591,7 @@ const NewIncidentPage = () => {
                 <option value="">Select Crew...</option>
                 {availableCrew.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {user.full_name.split(" ")[0]} ({user.full_name})
+                    {user.full_name}
                   </option>
                 ))}
               </FormSelect>
@@ -561,21 +641,70 @@ const NewIncidentPage = () => {
             </div>
           </section>
 
-          {/* Attachments (No change) */}
+          {/* 🌟 10. UPDATED ATTACHMENTS SECTION */}
           <section className="mb-8">
             <h3 className="text-lg font-semibold border-b border-[#495057] pb-2 mb-4">
               Attachments
             </h3>
-            <div className="p-6 border-2 border-dashed border-[#495057] rounded-md text-center text-[#6C757D]">
-              <FaPaperclip className="mx-auto text-3xl mb-2" />
-              <p>Drag and drop photos or videos here</p>
-              <p className="text-sm">
-                (Attachment upload not implemented in this step)
-              </p>
-            </div>
+
+            {isEditMode ? (
+              // --- EDIT MODE ---
+              // Show the full-featured component
+              <IncidentAttachments
+                incidentId={parseInt(incidentId!)} // We know it's safe!
+                initialAttachments={attachments}
+                isReadOnly={false} // Allow upload and delete
+              />
+            ) : (
+              // 🌟🌟 UPDATED: CREATE MODE 🌟🌟
+              // Show a simple file selector
+              <div>
+                {/* The hidden file input */}
+                <input
+                  type="file"
+                  id="file-upload"
+                  multiple // Allow selecting multiple files
+                  onChange={onFilesSelected}
+                  className="hidden"
+                />
+                {/* The "Upload" button */}
+                <label
+                  htmlFor="file-upload"
+                  className="btn-main-gray py-2 px-4 rounded-md text-sm cursor-pointer inline-flex items-center"
+                >
+                  <FaUpload className="mr-2" />
+                  Select Files to Upload...
+                </label>
+                
+                {/* List of selected files */}
+                <div className="mt-4 space-y-2">
+                  {filesToUpload.length === 0 ? (
+                    <p className="text-sm text-[#ADB5BD]">No files selected.</p>
+                  ) : (
+                    filesToUpload.map(file => (
+                      <div key={file.name} className="flex items-center justify-between p-2 bg-[#343A40] rounded-md">
+                        <div className="flex items-center gap-2">
+                           <FaPaperclip className="text-secondary-color"/>
+                           <span className="text-sm text-[#F8F9FA]">{file.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onRemoveFile(file.name)}
+                          className="text-red-500 hover:text-red-400"
+                          title="Remove file"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              // 🌟🌟 END UPDATED CREATE MODE 🌟🌟
+            )}
           </section>
 
-          {/* 🌟 6. Dynamic Action Buttons */}
+          {/* 🌟 11. Dynamic Action Buttons */}
           <div className="flex justify-end gap-4 mt-8">
             <button
               type="button"

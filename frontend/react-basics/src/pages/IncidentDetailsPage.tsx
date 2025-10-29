@@ -1,14 +1,12 @@
+/* [File: src/pages/IncidentDetailsPage.tsx] */
 import { useState, useEffect } from "react";
-// 🌟 1. Import useNavigate
 import { useParams, Link, useNavigate } from "react-router-dom";
 import CurrentCrew from "../components/CurrentCrew";
-// 🌟 2. REMOVED: import IncidentTabs
 import IncidentOverview from "../components/IncidentOverview";
 import NavBar from "../components/NavBar";
 import StatusBadge from "../components/StatusBadge";
 import { FaEdit, FaTrash, FaExclamationTriangle } from "react-icons/fa";
-// 🌟 3. NEW: Import placeholder components
-import IncidentLogNotes from "../components/IncidentLogNotes";
+import MapDisplay from "../components/MapDisplay";
 import IncidentAttachments from "../components/IncidentAttachments";
 
 // --- Helper function to format date string (No change) ---
@@ -28,11 +26,24 @@ const formatDate = (isoString: string) => {
   }
 };
 
-// --- Define types for our API data (No change) ---
+// --- 🌟 Define types for our API data (UPDATED) ---
 type AssignedPersonnel = {
   user_id: number;
   user_name: string;
   role_on_incident: string;
+};
+
+// 🌟 NEW: Define the Attachment type based on our database
+type Attachment = {
+  id: number;
+  incident_id: number;
+  user_id: number;
+  original_file_name: string;
+  file_name_on_disk: string;
+  file_path_relative: string;
+  mime_type: string;
+  file_size_bytes: number;
+  uploaded_at: string;
 };
 
 type IncidentDetails = {
@@ -50,18 +61,18 @@ type IncidentDetails = {
   reported_at: string;
   created_by_user_id: number;
   assigned_personnel: AssignedPersonnel[];
+  assigned_attachments: Attachment[]; // 🌟 ADDED
 };
 
 // --- Main Page Component ---
 const IncidentDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate(); // 🌟 4. Initialize navigate
+  const navigate = useNavigate();
 
   const [incident, setIncident] = useState<IncidentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // 🌟 5. NEW: State for delete operation
+
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -69,7 +80,10 @@ const IncidentDetailsPage = () => {
     const fetchIncidentDetails = async () => {
       try {
         const response = await fetch(
-          `http://localhost:3000/api/v1/incidents/${id}`
+          `http://localhost:3000/api/v1/incidents/${id}`,
+          {
+            credentials: "include",
+          }
         );
 
         if (!response.ok) {
@@ -90,12 +104,10 @@ const IncidentDetailsPage = () => {
     }
   }, [id]);
 
-  // 🌟 6. NEW: Handle Edit Button Click
   const handleEdit = () => {
     navigate(`/incident/edit/${id}`);
   };
 
-  // 🌟 7. NEW: Handle Delete Button Click
   const handleDelete = async () => {
     if (
       !window.confirm(
@@ -168,8 +180,7 @@ const IncidentDetailsPage = () => {
               >
                 &larr; Back to Incident Log
               </Link>
-              
-              {/* 🌟 8. NEW: Header with Buttons */}
+
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 {/* Left side: Title */}
                 <div>
@@ -189,7 +200,7 @@ const IncidentDetailsPage = () => {
                     {incident.title}
                   </p>
                 </div>
-                
+
                 {/* Right side: Action Buttons */}
                 <div className="flex gap-3 mt-4 md:mt-0">
                   <button
@@ -215,8 +226,7 @@ const IncidentDetailsPage = () => {
                 </div>
               </div>
             </div>
-            
-            {/* 🌟 9. NEW: Delete Error Message */}
+
             {deleteError && (
               <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-md text-red-200 flex items-center gap-3">
                 <FaExclamationTriangle />
@@ -225,12 +235,9 @@ const IncidentDetailsPage = () => {
                 </div>
               </div>
             )}
-            
-            {/* 🌟 10. REMOVED: <IncidentTabs /> */}
 
             {/* --- 2-Column Grid Layout (Redesigned) --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              
               {/* Left Column (Wider) */}
               <div className="lg:col-span-2 space-y-8">
                 <IncidentOverview
@@ -241,19 +248,21 @@ const IncidentDetailsPage = () => {
                   priority={incident.priority}
                   description={incident.description}
                 />
-                
-                {/* 🌟 11. NEW: Added Log & Notes and Attachments here */}
-                <IncidentLogNotes />
-                <IncidentAttachments />
 
+                <MapDisplay />
+                
+                {/* 🌟 Pass props to the attachments component */}
+                <IncidentAttachments
+                  incidentId={incident.id}
+                  initialAttachments={incident.assigned_attachments}
+                  isReadOnly={true}
+                />
               </div>
 
               {/* Right Column (Narrower) */}
               <div className="lg:col-span-1 space-y-8">
                 <CurrentCrew crew={incident.assigned_personnel} />
-                {/* You could add MapDisplay here if you re-add coordinates */}
               </div>
-
             </div>
             {/* --- End of Grid Layout --- */}
           </div>

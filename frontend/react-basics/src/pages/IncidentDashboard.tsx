@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-// 🌟 1. Import useNavigate
+// 🌟 1. Import useNavigate (already here, just confirming)
 import { useNavigate } from "react-router-dom";
 import NavBar from "../components/NavBar";
 import StatusBadge from "../components/StatusBadge";
@@ -13,17 +13,14 @@ import {
 } from "react-icons/fa";
 
 // Types
-// 💡 FIXED: This now matches your database ENUM
 type IncidentStatus = "active" | "closed" | "pending";
 type IncidentPriority = "high" | "medium" | "low";
 
-// This is the shape of data we *want* to use in our component
 type Incident = {
-  // 🌟 2. Added db_id to store the real database ID (e.g., 1, 2, 3)
   db_id: number;
-  id: string; // This will hold the `incident_code` (e.g., "INC-2025-00001")
-  type: string; // This will hold the `incident_type`
-  date: string; // This will hold the formatted `reported_at`
+  id: string; // incident_code
+  type: string; // incident_type
+  date: string; // formatted reported_at
   address: string;
   status: IncidentStatus;
   priority: IncidentPriority;
@@ -43,7 +40,7 @@ const defaultFilters: FilterState = {
   priority: "all",
 };
 
-// --- Reusable Filter Dropdown ---
+// --- Reusable Filter Dropdown (No change) ---
 type FilterDropdownProps = {
   label: string;
   children: React.ReactNode;
@@ -74,7 +71,7 @@ const FilterDropdown = ({
   </div>
 );
 
-// --- 🌟 NEW: Helper function to format date string ---
+// --- Helper function to format date string (No change) ---
 const formatDate = (isoString: string) => {
   if (!isoString) return "N/A";
   try {
@@ -93,18 +90,22 @@ const formatDate = (isoString: string) => {
 
 // --- Main Page Component ---
 const IncidentDashboard = () => {
-  // 🌟 3. Initialize the navigate function
   const navigate = useNavigate();
 
-  // --- 🌟 NEW: State for API data, loading, and errors ---
+  // API data state
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for filters
+  // Filter state
   const [filters, setFilters] = useState<FilterState>(defaultFilters);
 
-  // State for sorting
+  // 🌟 NEW: State for the search bar input
+  const [searchQuery, setSearchQuery] = useState("");
+  // 🌟 NEW: State for the debounced search term (to avoid API calls on every key press)
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+
+  // Sort state
   const [sortConfig, setSortConfig] = useState<{
     key: keyof Incident;
     direction: SortDirection;
@@ -113,12 +114,37 @@ const IncidentDashboard = () => {
     direction: "descending",
   });
 
-  // --- 🌟 NEW: useEffect to fetch data from your API ---
+  // 🌟 NEW: Debounce effect for the search input
+  useEffect(() => {
+    // Set up a timer
+    const handler = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 500); // Wait 500ms after user stops typing
+
+    // Clear the timer if the user types again
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]); // This effect runs every time 'searchQuery' changes
+
+  // 🌟 UPDATED: useEffect to fetch data based on the debounced search query
   useEffect(() => {
     const fetchIncidents = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        // ✅ This endpoint is correct per your server.js
-        const response = await fetch("http://localhost:3000/api/v1/incidents");
+        let url;
+        if (debouncedQuery) {
+          // If there's a search term, use the NEW search endpoint
+          url = `http://localhost:3000/api/v1/incidents/search?q=${encodeURIComponent(
+            debouncedQuery
+          )}`;
+        } else {
+          // Otherwise, get all incidents
+          url = "http://localhost:3000/api/v1/incidents";
+        }
+
+        const response = await fetch(url, { credentials: "include" });
 
         if (!response.ok) {
           throw new Error(
@@ -128,11 +154,10 @@ const IncidentDashboard = () => {
 
         const dbData = await response.json();
 
-        // 💡 Transform the DB data to match our frontend `Incident` type
+        // Transform the DB data to match our frontend `Incident` type
         const formattedIncidents: Incident[] = dbData.map((item: any) => ({
-          // 🌟 4. Store both the real ID and the display ID
-          db_id: item.id, // The real database ID (e.g., 1)
-          id: item.incident_code, // The display ID (e.g., "INC-...")
+          db_id: item.id,
+          id: item.incident_code,
           type: item.incident_type,
           date: formatDate(item.reported_at),
           address: item.address,
@@ -149,15 +174,14 @@ const IncidentDashboard = () => {
     };
 
     fetchIncidents();
-  }, []); // The empty `[]` means this runs only ONCE when the page loads
+  }, [debouncedQuery]); // 🌟 Re-run whenever the DEBOUNCED query changes
 
-  // 🌟 5. Create a function to handle the row click
+  // Row click handler (No change)
   const handleRowClick = (id: number) => {
-    // This will change the URL to "/incident/1" (or 2, 3, etc.)
     navigate(`/incident/${id}`);
   };
 
-  // Handle filter changes
+  // Filter change handler (No change)
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters((prev) => ({
@@ -166,12 +190,13 @@ const IncidentDashboard = () => {
     }));
   };
 
-  // Handle reset filters
+  // Reset filters handler (No change)
   const handleResetFilters = () => {
     setFilters(defaultFilters);
+    setSearchQuery(""); // 🌟 Also reset the search query
   };
 
-  // Handle sorting
+  // Sort handler (No change)
   const handleSort = (key: keyof Incident) => {
     setSortConfig((prev) => ({
       key,
@@ -182,27 +207,21 @@ const IncidentDashboard = () => {
     }));
   };
 
-  // Helper to get date for comparison
+  // --- Helper functions for sorting (No change) ---
   const getDateValue = (dateString: string) => {
     return new Date(dateString).getTime();
   };
-
-  // Helper to get status sort order
   const getStatusOrder = (status: IncidentStatus): number => {
-    // 💡 FIXED: Removed 'under_investigation'
     const order = { active: 1, pending: 2, closed: 3 };
-    return order[status] || 99; // Fallback
+    return order[status] || 99;
   };
-
-  // Helper to get priority sort order
   const getPriorityOrder = (priority: IncidentPriority): number => {
     const order = { high: 1, medium: 2, low: 3 };
     return order[priority];
   };
 
-  // Filter and sort incidents
+  // Filter and sort incidents (No change, this runs *after* API results are back)
   const filteredAndSortedIncidents = useMemo(() => {
-    // 🌟 UPDATED: Use `allIncidents` (from API) instead of `mockIncidents`
     let result = [...allIncidents];
 
     // Apply status filter
@@ -211,7 +230,6 @@ const IncidentDashboard = () => {
         (incident) => incident.status === filters.status.toLowerCase()
       );
     }
-
     // Apply incident type filter
     if (filters.incidentType !== "all") {
       result = result.filter(
@@ -219,24 +237,18 @@ const IncidentDashboard = () => {
           incident.type.toLowerCase() === filters.incidentType.toLowerCase()
       );
     }
-
     // Apply priority filter
     if (filters.priority !== "all") {
       result = result.filter(
         (incident) => incident.priority === filters.priority.toLowerCase()
       );
     }
-
     // Apply sorting
     result.sort((a, b) => {
       const key = sortConfig.key;
-
       if (!a.hasOwnProperty(key) || !b.hasOwnProperty(key)) return 0;
-
       let aValue: string | number = a[key];
       let bValue: string | number = b[key];
-
-      // Special handling for different column types
       if (key === "date") {
         aValue = getDateValue(a.date);
         bValue = getDateValue(b.date);
@@ -247,7 +259,6 @@ const IncidentDashboard = () => {
         aValue = getPriorityOrder(a.priority);
         bValue = getPriorityOrder(a.priority);
       }
-
       if (aValue < bValue) {
         return sortConfig.direction === "ascending" ? -1 : 1;
       }
@@ -256,12 +267,10 @@ const IncidentDashboard = () => {
       }
       return 0;
     });
-
     return result;
-    // 🌟 UPDATED: Add `allIncidents` to the dependency array
   }, [filters, sortConfig, allIncidents]);
 
-  // Helper function to render the correct sort icon
+  // Sort icon helper (No change)
   const getSortIcon = (key: keyof Incident) => {
     if (sortConfig.key !== key) {
       return <FaSort className="inline ml-1 opacity-30" />;
@@ -278,10 +287,9 @@ const IncidentDashboard = () => {
 
       <main className="flex-grow p-8 overflow-y-auto">
         <div className="max-w-7xl mx-auto bg-[#2C3034] p-6 rounded-lg shadow-lg">
-          {/* Page Title & Button */}
+          {/* Page Title & Button (No change) */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold">Incident Log</h2>
-            {/* 💡 This button should probably navigate to /incident/new */}
             <button
               onClick={() => navigate("/incident/new")}
               className="btn-main-red py-2 px-4 rounded-md"
@@ -293,7 +301,7 @@ const IncidentDashboard = () => {
 
           {/* Search and Filter Controls */}
           <div className="space-y-4 mb-6">
-            {/* Search Bar - Backend will handle this */}
+            {/* 🌟 UPDATED Search Bar */}
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <FaSearch className="text-secondary-color" />
@@ -302,10 +310,12 @@ const IncidentDashboard = () => {
                 type="text"
                 placeholder="Search Incidents (ID, Address, Keyword...)"
                 className="w-full p-3 h-12 pl-10 form-input rounded-md placeholder-[#ADB5BD]"
+                value={searchQuery} // 🌟 Set value from state
+                onChange={(e) => setSearchQuery(e.target.value)} // 🌟 Update state on change
               />
             </div>
 
-            {/* Filter Panel */}
+            {/* Filter Panel (No change) */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <FilterDropdown
                 label="Status"
@@ -317,7 +327,6 @@ const IncidentDashboard = () => {
                 <option value="active">Active</option>
                 <option value="closed">Closed</option>
                 <option value="pending">Pending</option>
-                {/* 💡 FIXED: Removed 'under_investigation' */}\
               </FilterDropdown>
 
               <FilterDropdown
@@ -359,10 +368,10 @@ const IncidentDashboard = () => {
             </div>
           </div>
 
-          {/* Incident List Table */}
+          {/* Incident List Table (No change in structure) */}
           <div className="overflow-x-auto">
             <table className="w-full min-w-[900px]">
-              {/* Table Header */}
+              {/* Table Header (No change) */}
               <thead className="bg-[#3A3F44]">
                 <tr>
                   <th
@@ -389,6 +398,7 @@ const IncidentDashboard = () => {
                   >
                     Address {getSortIcon("address")}
                   </th>
+  
                   <th
                     className="p-3 text-left text-xs font-bold uppercase tracking-wider cursor-pointer hover:bg-[#434a5c]"
                     onClick={() => handleSort("status")}
@@ -404,7 +414,7 @@ const IncidentDashboard = () => {
                 </tr>
               </thead>
 
-              {/* Table Body - 🌟 UPDATED with Loading/Error/Data states */}
+              {/* Table Body - (No change in logic, just uses updated data) */}
               <tbody>
                 {isLoading ? (
                   <tr>
@@ -426,9 +436,8 @@ const IncidentDashboard = () => {
                   </tr>
                 ) : filteredAndSortedIncidents.length > 0 ? (
                   filteredAndSortedIncidents.map((incident) => (
-                    // 🌟 6. Added onClick and cursor-pointer
                     <tr
-                      key={incident.id} // Use the unique incident_code
+                      key={incident.id}
                       onClick={() => handleRowClick(incident.db_id)}
                       className="border-b border-[#495057] hover:bg-[#3A3F44] transition-colors cursor-pointer"
                     >
@@ -462,7 +471,8 @@ const IncidentDashboard = () => {
                       colSpan={6}
                       className="p-8 text-center text-secondary-color"
                     >
-                      No incidents found matching your filters.
+                      {/* 🌟 Updated message to be more accurate */}
+                      No incidents found matching your search or filters.
                     </td>
                   </tr>
                 )}
@@ -470,12 +480,12 @@ const IncidentDashboard = () => {
             </table>
           </div>
 
-          {/* Pagination Controls */}
+          {/* Pagination Controls (No change) */}
           <div className="flex items-center justify-between mt-6 text-sm">
             <span className="text-secondary-color">
-              {/* 🌟 UPDATED: Show count from `allIncidents` state */}
               Showing {filteredAndSortedIncidents.length} of{" "}
               {allIncidents.length} Incidents
+              {/* This text is now more dynamic. If you search, it might say "Showing 1 of 1 Incidents" */}
             </span>
             <div className="flex gap-2">
               <button

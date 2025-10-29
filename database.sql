@@ -1,8 +1,9 @@
+/* [File: database.sql] */
 DROP DATABASE IF EXISTS FireFighterLogIncident;
 CREATE DATABASE FireFighterLogIncident;
 USE FireFighterLogIncident;
 
--- 1️⃣ users (MODIFIED: station_id removed)
+-- 1️⃣ users
 CREATE TABLE users (
   id INT PRIMARY KEY AUTO_INCREMENT,
   full_name VARCHAR(255) NOT NULL,
@@ -16,7 +17,7 @@ CREATE TABLE users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) COMMENT='availability_status tracks if a firefighter is ready for assignment.';
 
--- 2️⃣ incidents (🌟 UPDATED: Removed latitude and longitude)
+-- 2️⃣ incidents
 CREATE TABLE incidents (
   id INT PRIMARY KEY AUTO_INCREMENT,
   
@@ -40,7 +41,7 @@ CREATE TABLE incidents (
   FOREIGN KEY (created_by_user_id) REFERENCES users(id)
 );
 
--- 3️⃣ equipment (MODIFIED: station_id removed)
+-- 3️⃣ equipment
 CREATE TABLE equipment (
   id INT PRIMARY KEY AUTO_INCREMENT,
   asset_id VARCHAR(100) UNIQUE NOT NULL,
@@ -59,7 +60,8 @@ CREATE TABLE incident_personnel (
   role_on_incident VARCHAR(100) NOT NULL DEFAULT 'Firefighter',
   assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   released_at TIMESTAMP,
-  FOREIGN KEY (incident_id) REFERENCES incidents(id),
+  -- 🌟 ADDED: Deletes this record if the parent incident is deleted
+  FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id)
 ) COMMENT='Tracks which firefighters are assigned to which incidents and what their roles are.';
 
@@ -70,20 +72,28 @@ CREATE TABLE incident_equipment (
   equipment_id INT NOT NULL,
   assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   released_at TIMESTAMP,
-  FOREIGN KEY (incident_id) REFERENCES incidents(id),
+  -- 🌟 ADDED: Deletes this record if the parent incident is deleted
+  FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
   FOREIGN KEY (equipment_id) REFERENCES equipment(id)
 ) COMMENT='Tracks which equipment/apparatus is assigned to which incidents.';
 
--- 6️⃣ attachments
+-- 6️⃣ attachments (🌟 UPDATED)
 CREATE TABLE attachments (
   id INT PRIMARY KEY AUTO_INCREMENT,
   incident_id INT NOT NULL,
-  user_id INT NOT NULL,
-  file_name VARCHAR(255) NOT NULL,
-  file_url VARCHAR(1024) NOT NULL,
-  file_type ENUM('Image', 'Video', 'Audio', 'Document') NOT NULL,
+  user_id INT NOT NULL COMMENT 'The user who uploaded the file',
+  
+  original_file_name VARCHAR(255) NOT NULL COMMENT 'e.g., "scene-photo.jpg"',
+  file_name_on_disk VARCHAR(255) NOT NULL UNIQUE COMMENT 'e.g., "16888-incident-1-scene-photo.jpg"',
+  file_path_relative VARCHAR(255) NOT NULL COMMENT 'e.g., "uploads/16888-incident-1-scene-photo.jpg"',
+  
+  mime_type VARCHAR(100) NOT NULL COMMENT 'e.g., "image/jpeg"',
+  file_size_bytes INT,
+  
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (incident_id) REFERENCES incidents(id),
+  
+  -- 🌟 ADDED: Deletes this record if the parent incident is deleted
+  FOREIGN KEY (incident_id) REFERENCES incidents(id) ON DELETE CASCADE,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -99,8 +109,6 @@ VALUES
 ('David Chen', 'david.chen@firedept.com', 'hashed_111', 'Firefighter', 'Driver', 'Active', 'Available'),
 ('Maria Garcia', 'maria.garcia@firedept.com', 'hashed_222', 'Captain', 'Battalion Chief', 'Active', 'On_Duty');
 
-
--- (🌟 UPDATED: Removed latitude and longitude from inserts)
 INSERT INTO incidents (incident_code, title, incident_type, status, priority, address, city, state, zip_code, description, created_by_user_id)
 VALUES
 ('INC-2025-00001', 'Warehouse fire near Rama IX', 'fire', 'active', 'high', '45 Rama IX Rd', 'Bangkok', 'Bangkok', '10310', 'Large warehouse fire reported by multiple callers.', 2),
@@ -109,26 +117,13 @@ VALUES
 ('INC-2025-00004', 'Chemical leak report', 'hazmat', 'closed', 'high', '300 Industrial Park', 'Chonburi', 'Chonburi', '20000', 'Reports of a strange smell and visible fumes from a factory.', 2),
 ('INC-2025-00005', 'Elderly assistance call', 'public_assist', 'active', 'low', '25 Market St', 'Chiang Mai', 'Chiang Mai', '50000', 'Elderly person fell, needs help getting up. No injuries reported.', 1);
 
--- (MODIFIED: 'EMT' and 'HAZMAT Tech' roles removed)
 INSERT INTO incident_personnel (incident_id, user_id, role_on_incident)
 VALUES
--- Incident 1: Warehouse fire
-(1, 1, 'Firefighter'),
-(1, 2, 'Captain'),
-(1, 5, 'Driver'),
-(1, 7, 'Scene Commander'),
--- Incident 2: EMS
+(1, 1, 'Firefighter'), (1, 2, 'Captain'), (1, 5, 'Driver'), (1, 7, 'Scene Commander'),
 (2, 5, 'Firefighter'),
--- (2, 4, 'EMT'), -- 🌟 REMOVED 🌟
--- Incident 3: Cat rescue
 (3, 4, 'Firefighter'),
--- Incident 4: HAZMAT
-(4, 1, 'Firefighter'),
-(4, 2, 'Scene Commander'),
--- (4, 5, 'HAZMAT Tech'), -- 🌟 REMOVED 🌟
--- Incident 5: Elderly assist
-(5, 1, 'Firefighter'),
-(5, 6, 'Driver');
+(4, 1, 'Firefighter'), (4, 2, 'Scene Commander'),
+(5, 1, 'Firefighter'), (5, 6, 'Driver');
 
 INSERT INTO equipment (asset_id, type, status, last_maintenance_date)
 VALUES
@@ -140,16 +135,9 @@ VALUES
 
 INSERT INTO incident_equipment (incident_id, equipment_id)
 VALUES
-(1, 1),
-(1, 2),
-(2, 3),
-(3, 4),
-(4, 5);
+(1, 1), (1, 2), (2, 3), (3, 4), (4, 5);
 
-INSERT INTO attachments (incident_id, user_id, file_name, file_url, file_type)
+INSERT INTO attachments (incident_id, user_id, original_file_name, file_name_on_disk, file_path_relative, mime_type, file_size_bytes)
 VALUES
-(1, 2, 'fire_scene.jpg', '/uploads/fire_scene.jpg', 'Image'),
-(1, 1, 'incident_report.pdf', '/uploads/incident_report.pdf', 'Document'),
-(2, 5, 'accident_site.mp4', '/uploads/accident_site.mp4', 'Video'),
-(3, 4, 'rescue_photo.jpg', '/uploads/rescue_photo.jpg', 'Image'),
-(4, 2, 'hazmat_readings.csv', '/uploads/hazmat_readings.csv', 'Document');
+(1, 2, 'fire_scene.jpg', '1-1-fire_scene.jpg', 'uploads/1-1-fire_scene.jpg', 'image/jpeg', 123456),
+(1, 1, 'incident_report.pdf', '1-2-incident_report.pdf', 'uploads/1-2-incident_report.pdf', 'application/pdf', 789012);
