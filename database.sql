@@ -137,7 +137,3 @@ INSERT INTO incident_equipment (incident_id, equipment_id)
 VALUES
 (1, 1), (1, 2), (2, 3), (3, 4), (4, 5);
 
-INSERT INTO attachments (incident_id, user_id, original_file_name, file_name_on_disk, file_path_relative, mime_type, file_size_bytes)
-VALUES
-(1, 2, 'fire_scene.jpg', '1-1-fire_scene.jpg', 'uploads/1-1-fire_scene.jpg', 'image/jpeg', 123456),
-(1, 1, 'incident_report.pdf', '1-2-incident_report.pdf', 'uploads/1-2-incident_report.pdf', 'application/pdf', 789012);

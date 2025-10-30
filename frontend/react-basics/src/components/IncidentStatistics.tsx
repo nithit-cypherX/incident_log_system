@@ -4,6 +4,8 @@
 import RecentActivity from './RecentActivity';
 import IncidentTypeChart from './IncidentTypeChart';
 import ChartPlaceholder from './ChartPlaceholder';
+// 🌟 1. Import the new component
+import IncidentsTodayChart from './IncidentsTodayChart';
 
 // 🌟 2. ADD THE MISSING TYPE DEFINITIONS
 type IncidentTypeData = {
@@ -36,8 +38,13 @@ const IncidentStatistics = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Column 1 */}
         <div className="space-y-8">
-          {/* You can use 'incidentsTodayData' to build a chart here */}
-          <ChartPlaceholder title="Incidents Today" />
+          {/* 🌟 2. FIX: This now checks for 'incidentsTodayData' */}
+          {loading || typeof incidentsTodayData === 'undefined' ? (
+            <ChartPlaceholder title="Incidents Today" />
+          ) : (
+            // 🌟 3. FIX: Use the new component and pass the 'count' prop
+            <IncidentsTodayChart count={incidentsTodayData} />
+          )}
         </div>
 
         {/* Column 2 */}

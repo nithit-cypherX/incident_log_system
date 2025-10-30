@@ -33,7 +33,7 @@ const LoginPage = () => {
       if (response.ok && data.success) {
         // ✅ Login successful - redirect to dashboard
         console.log("Login successful:", data.message);
-        navigate("/new-incident"); // Redirect to your incident page
+        navigate("/dashboard"); // Redirect to your incident page
       } else {
         // ❌ Login failed
         setError(data.message || "Invalid username or password");

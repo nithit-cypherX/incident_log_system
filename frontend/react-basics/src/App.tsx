@@ -75,10 +75,10 @@ function App() {
 
 
             {/* Redirect root to the main dashboard */}
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
             
             {/* 404 or redirect for any other unknown path */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </main>
         <Footer />
