@@ -1,13 +1,11 @@
 /* [File: server.js] */
 /* eslint-disable @typescript-eslint/no-var-requires */
 const path = require("path");
-// 🌟 NEW: Import fs (File System)
 const fs = require("fs");
 require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
-// 🌟 NEW: Import multer
 const multer = require("multer");
 
 const port = process.env.SERVER_PORT;
@@ -25,27 +23,20 @@ app.use(
   })
 );
 
-// 🌟 --- NEW: Serve static files (uploads) ---
-// This makes files in the 'uploads' folder accessible via URL
-// e.g., http://localhost:3000/uploads/my-file.jpg
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// 🌟 --- NEW: Multer file upload configuration ---
+// --- Multer file upload configuration (No change) ---
 const storage = multer.diskStorage({
-  // Set the destination directory
   destination: (req, file, cb) => {
-    // We need to make sure the 'uploads' directory exists
     const uploadDir = path.join(__dirname, "uploads");
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir);
     }
     cb(null, uploadDir);
   },
-  // Set the file name
   filename: (req, file, cb) => {
-    const incidentId = req.params.id; // Get incident ID from the URL
+    const incidentId = req.params.id || "new"; // Handle new incidents
     const timestamp = Date.now();
-    // Create a unique, safe filename: e.g., "incident-1-16888-my-report.pdf"
     const safeFilename = file.originalname
       .toLowerCase()
       .replace(/[^a-z0-9.]/g, "-");
@@ -58,9 +49,9 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
 });
-// 🌟 --- END of Multer config ---
+// --- END of Multer config ---
 
-// MySQL Database connection
+// MySQL Database connection (No change)
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -74,25 +65,29 @@ db.connect(function (err) {
   console.log(`Connected DB: ${process.env.DB_NAME}`);
 });
 
-// 1. Users Login Endpoints (No change)
-app.post("/login", (req, res) => {
+// 1. Users Login Endpoints
+// 🌟 --- FIX: Moved all auth routes to /api/v1 --- 🌟
+app.post("/api/v1/login", (req, res) => {
   const { username, password } = req.body;
-  const sql = "SELECT * FROM users WHERE email = ? AND password_hash = ?";
+  // 🌟 FIX: Use email and password_hash from your DB schema
+  const sql = "SELECT id, email, full_name, role FROM users WHERE email = ? AND password_hash = ?";
   db.query(sql, [username, password], (err, result) => {
     if (err) {
       console.error("Database error:", err);
       return res.status(500).json({ message: "Database error" });
     }
     if (result.length > 0) {
-      res.cookie("user", username, {
+      const user = result[0];
+      res.cookie("user_id", user.id, { // Store user ID
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000,
         sameSite: "lax",
       });
       res.json({
         success: true,
-        message: `Welcome back, ${username}`,
-        username: username,
+        message: `Welcome back, ${user.full_name}`,
+        // 🌟 FIX: Return the user object client expects
+        user: { id: user.id, username: user.full_name, role: user.role }, 
       });
     } else {
       res.status(401).json({
@@ -103,17 +98,35 @@ app.post("/login", (req, res) => {
   });
 });
 
-app.get("/check-login", (req, res) => {
-  const user = req.cookies.user;
-  if (user) {
-    res.json({ loggedIn: true, username: user });
+app.get("/api/v1/check-login", (req, res) => {
+  const userId = req.cookies.user_id; // Check for user_id cookie
+  if (userId) {
+     // 🌟 FIX: Return the full user object, not just username
+    const sql = "SELECT id, full_name, role FROM users WHERE id = ?";
+    db.query(sql, [userId], (err, result) => {
+        if (err || result.length === 0) {
+           return res.status(401).json({ loggedIn: false, message: "Invalid user session" });
+        }
+        const user = result[0];
+         res.json({ id: user.id, username: user.full_name, role: user.role });
+    });
   } else {
     res.status(401).json({ loggedIn: false, message: "Not logged in" });
   }
 });
 
-// 2. Incident Endpoints
-// ✅ Used by: src/pages/IncidentDashboard.tsx (on initial load)
+// 🌟 --- FIX: Added the missing /logout route --- 🌟
+app.post("/api/v1/logout", (req, res) => {
+  res.cookie("user_id", "", {
+    httpOnly: true,
+    expires: new Date(0), // Expire the cookie
+    sameSite: "lax",
+  });
+  res.json({ success: true, message: "Logged out successfully" });
+});
+
+
+// 2. Incident Endpoints (No change)
 app.get("/api/v1/incidents", (req, res) => {
   const query = `SELECT * FROM incidents ORDER BY id DESC LIMIT 1000`;
   db.query(query, (err, results) => {
@@ -124,6 +137,9 @@ app.get("/api/v1/incidents", (req, res) => {
     return res.json(results);
   });
 });
+
+// ... (all other /api/v1/ routes remain the same) ...
+// (rest of your server.js file)
 
 // ✅ Used by: src/components/RecentActivity.tsx (No change)
 app.get("/api/v1/incidents/recent-activity", (req, res) => {
@@ -280,7 +296,7 @@ app.post("/api/v1/incidents/create", async (req, res) => {
   }
 });
 
-// ✅ Used by: src/pages/IncidentDetailsPage.tsx (🌟 UPDATED)
+// ✅ Used by: src/pages/IncidentDetailsPage.tsx (No change from your file)
 app.get("/api/v1/incidents/:id", (req, res) => {
   const id = req.params.id;
 
@@ -406,7 +422,7 @@ app.put("/api/v1/incidents/:id", async (req, res) => {
   }
 });
 
-// ✅ Used by: src/pages/IncidentDetailsPage.tsx (🌟 UPDATED and SIMPLIFIED)
+// ✅ Used by: src/pages/IncidentDetailsPage.tsx (No change from your file)
 app.delete("/api/v1/incidents/:id", async (req, res) => {
   const id = req.params.id;
 
@@ -456,7 +472,7 @@ app.delete("/api/v1/incidents/:id", async (req, res) => {
 
 // 🌟 --- NEW Attachment Endpoints --- 🌟
 
-// ✅ Used by: src/components/IncidentAttachments.tsx
+// ✅ Used by: src/components/IncidentAttachments.tsx (No change)
 app.post(
   "/api/v1/incidents/:id/attachments",
   upload.single("file"), // "file" must match the FormData key
@@ -509,7 +525,7 @@ app.post(
   }
 );
 
-// ✅ Used by: src/components/IncidentAttachments.tsx
+// ✅ Used by: src/components/IncidentAttachments.tsx (No change)
 app.delete("/api/v1/attachments/:id", async (req, res) => {
   const attachmentId = req.params.id;
   
@@ -626,6 +642,7 @@ app.get("/api/v1/dashboard/stats", async (req, res) => {
     }
   }
 });
+
 
 // 404 handler for invalid routes
 app.use((req, res) => {
