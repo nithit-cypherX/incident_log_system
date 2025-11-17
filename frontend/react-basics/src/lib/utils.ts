@@ -76,3 +76,26 @@ export const getCurrentDateTime = () => {
   const time = now.toTimeString().split(" ")[0].substring(0, 5); // "HH:MM"
   return { date, time };
 };
+// 🌟 --- NEW --- 🌟
+/**
+ * Formats a status string (e.g., "on_duty" or "available")
+ * into a capitalized, human-readable format (e.g., "On Duty", "Available").
+ *
+ * What it does:
+ * - Replaces underscores with spaces.
+ * - Capitalizes the first letter of each word.
+ *
+ * How it works:
+ * - Uses regex to split the string, map over words, and rejoin.
+ *
+ * @param statusText The raw status string.
+ * @returns A formatted, capitalized string.
+ */
+export const formatStatusText = (statusText: string): string => {
+  if (!statusText) return "N/A";
+  return statusText
+    .split("_") // Splits "on_duty" into ["on", "duty"]
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // "on" -> "On", "duty" -> "Duty"
+    .join(" "); // Joins ["On", "Duty"] into "On Duty"
+};
+// 🌟 --- END NEW --- 🌟

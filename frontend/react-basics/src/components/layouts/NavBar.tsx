@@ -31,12 +31,20 @@ const NavBar = () => {
     "text-white font-semibold border-b-2 border-[#1D63FF] pb-1";
   const inactiveLinkClass = "text-[#A0B0C0] font-medium";
 
+  // 🌟 MODIFIED: Updated this function to handle multiple paths
   const isPathActive = (path: string) => {
     if (path === "/dashboard") {
       return currentPath === path;
     }
     // Check for /incident-dashboard, /incident/new, or /incident/:id
-    return currentPath.startsWith("/incident");
+    if (path === "/incident") {
+      return currentPath.startsWith("/incident");
+    }
+    // Check for /crew-management
+    if (path === "/crew-management") {
+      return currentPath.startsWith("/crew-management");
+    }
+    return false;
   };
 
   const handleLogout = async () => {
@@ -76,6 +84,17 @@ const NavBar = () => {
           }`}
         >
           Incident Log
+        </Link>
+
+        <Link
+          to="/crew-management"
+          className={`${baseLinkClass} ${
+            isPathActive("/crew-management")
+              ? activeLinkClass
+              : inactiveLinkClass
+          }`}
+        >
+          Crews & Equipment
         </Link>
       </div>
 
