@@ -5,53 +5,41 @@
  * list of personnel in a table.
  *
  * How it works:
- * - Receives 'personnel', 'isLoading', and 'error' as props.
- * - 🌟 NOW ALSO receives 'sortConfig' and 'onSort' props.
+ * - Receives 'personnel', 'sortConfig', and 'onSort' props.
  * - Maps over the 'personnel' array to render table rows.
- * - Imports and uses the 'StatusBadge' component for the status.
- * - 🌟 Headers are now clickable and call 'onSort'.
- * - 🌟 Sort icons are displayed next to the active sort column.
- * - 🌟 Uses the 'formatStatusText' util for status badges.
+ * - Headers are clickable and call 'onSort'.
+ * - Sort icons are displayed.
+ * - Uses the 'formatStatusText' util for status badges.
+ * - 🌟 The 'personnel.length === 0' check now handles both
+ * the initial "empty" state and a "no results" state.
  *
  * How it connects:
  * - Rendered by 'CrewManagementPage.tsx'.
  */
 
-import type {
-  PersonnelMember,
-  PersonnelSortConfig, // 🌟 Import sort config type
-} from "../types/crew.types";
+import type { PersonnelMember, PersonnelSortConfig } from "../types/crew.types";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import {
-  FaSpinner,
-  FaExclamationTriangle,
-  // 🌟 Import sort icons
+  // 🌟 Removed FaSpinner, FaExclamationTriangle
   FaSort,
   FaSortUp,
   FaSortDown,
 } from "react-icons/fa";
-// 🌟 Import the new text formatter
 import { formatStatusText } from "../../../lib/utils";
 
 // 1. Define the props this component accepts
 type PersonnelTableProps = {
   personnel: PersonnelMember[];
-  isLoading: boolean;
-  error: string | null;
-  // 🌟 Add props for sorting
   sortConfig: PersonnelSortConfig;
   onSort: (key: keyof PersonnelMember) => void;
 };
 
 const PersonnelTable = ({
   personnel,
-  isLoading,
-  error,
-  sortConfig, // 🌟 Destructure new props
-  onSort, // 🌟 Destructure new props
+  sortConfig,
+  onSort,
 }: PersonnelTableProps) => {
-  // 2. 🌟 Helper to get the correct sort icon
-  // (Copied from 'IncidentListTable.tsx')
+  // 2. Helper to get the correct sort icon
   const getSortIcon = (key: keyof PersonnelMember) => {
     if (sortConfig.key !== key) {
       return <FaSort className="inline ml-1 opacity-30" />;
@@ -64,35 +52,9 @@ const PersonnelTable = ({
 
   // 3. Helper function to render the table body based on state
   const renderTableBody = () => {
-    // 3a. Loading state
-    if (isLoading) {
-      return (
-        <tr>
-          <td colSpan={8} className="p-8 text-center text-secondary-color">
-            <div className="flex justify-center items-center">
-              <FaSpinner className="animate-spin mr-2" />
-              Loading personnel...
-            </div>
-          </td>
-        </tr>
-      );
-    }
-
-    // 3b. Error state
-    if (error) {
-      return (
-        <tr>
-          <td colSpan={8} className="p-8 text-center text-red-400">
-            <div className="flex justify-center items-center">
-              <FaExclamationTriangle className="mr-2" />
-              Error fetching data: {error}
-            </div>
-          </td>
-        </tr>
-      );
-    }
-
-    // 3c. No data state
+    // 3a. No data state
+    // This now handles the initial render (empty array)
+    // AND the "no results found" case.
     if (personnel.length === 0) {
       return (
         <tr>
@@ -103,7 +65,7 @@ const PersonnelTable = ({
       );
     }
 
-    // 3d. Success state: map over the data
+    // 3b. Success state: map over the data
     return personnel.map((member) => (
       <tr
         key={member.id}
@@ -116,7 +78,6 @@ const PersonnelTable = ({
         <td className="p-3 text-sm">{member.certifications}</td>
         <td className="p-3 text-sm">
           <StatusBadge
-            // 🌟 Use the new formatter for the text
             text={formatStatusText(member.status)}
             type={member.status}
           />
@@ -133,7 +94,7 @@ const PersonnelTable = ({
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[1100px]">
-        {/* 4a. 🌟 Table Header (now clickable for sorting) */}
+        {/* 4a. Table Header (Unchanged) */}
         <thead className="bg-[#3A3F44]">
           <tr>
             <th
@@ -191,4 +152,4 @@ const PersonnelTable = ({
   );
 };
 
-export default PersonnelTable;  
+export default PersonnelTable;

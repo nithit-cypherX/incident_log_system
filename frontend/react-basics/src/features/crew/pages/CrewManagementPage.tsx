@@ -4,20 +4,16 @@
  * The "smart" page component for "Crew & Equipment Management".
  *
  * How it works:
- * - Manages all state for this feature, now for BOTH tabs.
+ * - Manages all state for this feature.
  * - 'activeTab': Tracks whether 'personnel' or 'equipment' is selected.
- * - 'personnel', 'isLoading', 'error', 'sortConfig': State for the Personnel tab.
- * - 🌟 'equipment', 'isEquipmentLoading', 'equipmentError', 'equipmentSortConfig':
- * New state for the Equipment tab.
- * - 'useEffect' now fetches data based on the 'activeTab'.
- * - 🌟 'handleSort' (for personnel) and 'handleEquipmentSort' (for equipment)
- * update their respective sort states.
- * - 🌟 'useMemo' is used to create 'sortedPersonnel' AND 'sortedEquipment'.
- * - 🌟 The render function is now dynamic:
- * - The Search Bar placeholder changes.
- * - The "Add New" button text changes.
- * - It renders <PersonnelTable> or <EquipmentTable> based on 'activeTab'.
- * - The pagination text updates based on the active list.
+ * - 'personnel' & 'equipment' states start as empty arrays.
+ * - 🌟 'useEffect' now fetches data and *directly* sets the state
+ * without managing 'loading' or 'error' states. The tables
+ * will be empty until the data arrives.
+ * - 'handleSort' and 'handleEquipmentSort' update sort states.
+ * - 'useMemo' is used to create 'sortedPersonnel' AND 'sortedEquipment'.
+ * - The render function is dynamic and passes the lists (which
+ * are initially empty) to the dumb tables.
  *
  * How it connects:
  * - 'App.tsx' routes '/crew-management' to this page.
@@ -37,17 +33,13 @@ import type {
   CrewPageTab,
   PersonnelSortConfig,
   PersonnelStatus,
-  // 🌟 Import new equipment types
   EquipmentItem,
   EquipmentSortConfig,
   EquipmentStatus,
 } from "../types/crew.types";
 import { crewService } from "../services/crewService";
 import PersonnelTable from "../components/PersonnelTable";
-// 🌟 Import the new EquipmentTable component
 import EquipmentTable from "../components/EquipmentTable";
-// 🌟 We no longer need the placeholder
-// import EquipmentPlaceholder from "../components/EquipmentPlaceholder";
 
 const CrewManagementPage = () => {
   // 1. --- State Management ---
@@ -55,17 +47,14 @@ const CrewManagementPage = () => {
 
   // State for Personnel
   const [personnel, setPersonnel] = useState<PersonnelMember[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // 🌟 REMOVED: isLoading and error states
   const [sortConfig, setSortConfig] = useState<PersonnelSortConfig>({
     key: "name",
     direction: "ascending",
   });
 
-  // 🌟 State for Equipment
+  // State for Equipment
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
-  const [isEquipmentLoading, setIsEquipmentLoading] = useState(true);
-  const [equipmentError, setEquipmentError] = useState<string | null>(null);
   const [equipmentSortConfig, setEquipmentSortConfig] =
     useState<EquipmentSortConfig>({
       key: "asset_id",
@@ -73,38 +62,24 @@ const CrewManagementPage = () => {
     });
 
   // 2. --- Data Fetching ---
-  // 🌟 This effect now fetches data based on the active tab
+  // 🌟 This effect now directly fetches and sets data.
   useEffect(() => {
     if (activeTab === "personnel") {
-      const fetchPersonnel = async () => {
-        try {
-          setIsLoading(true); // Use the personnel loading state
-          const data = await crewService.getPersonnel();
-          setPersonnel(data);
-        } catch (err: any) {
-          setError(err.message); // Use the personnel error state
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchPersonnel();
+      // No loading state set.
+      crewService.getPersonnel().then((data) => {
+        setPersonnel(data);
+      });
+      // We don't catch errors, as we aren't displaying them.
+      // In a real app, you'd still want to log them.
     } else if (activeTab === "equipment") {
-      const fetchEquipment = async () => {
-        try {
-          setIsEquipmentLoading(true); // Use the equipment loading state
-          const data = await crewService.getEquipment();
-          setEquipment(data);
-        } catch (err: any) {
-          setEquipmentError(err.message); // Use the equipment error state
-        } finally {
-          setIsEquipmentLoading(false);
-        }
-      };
-      fetchEquipment();
+      // No loading state set.
+      crewService.getEquipment().then((data) => {
+        setEquipment(data);
+      });
     }
-  }, [activeTab]); // Re-run whenever the tab changes
+  }, [activeTab]);
 
-  // 3. --- Helper Functions ---
+  // 3. --- Helper Functions --- (Unchanged)
 
   const getTabClass = (tabName: CrewPageTab): string => {
     const baseClass = "pb-2 px-1 font-medium transition-colors";
@@ -114,7 +89,6 @@ const CrewManagementPage = () => {
     return `${baseClass} text-secondary-color hover:text-primary-color`;
   };
 
-  // Sort handler for Personnel
   const handleSort = (key: keyof PersonnelMember) => {
     setSortConfig((prev) => ({
       key,
@@ -125,7 +99,6 @@ const CrewManagementPage = () => {
     }));
   };
 
-  // 🌟 New sort handler for Equipment
   const handleEquipmentSort = (key: keyof EquipmentItem) => {
     setEquipmentSortConfig((prev) => ({
       key,
@@ -136,11 +109,9 @@ const CrewManagementPage = () => {
     }));
   };
 
-  // Helper for sorting personnel by status
   const getPersonnelStatusOrder = (status: PersonnelStatus) =>
     ({ available: 1, on_duty: 2, on_leave: 3 }[status] || 99);
 
-  // 🌟 New helper for sorting equipment by status
   const getEquipmentStatusOrder = (status: EquipmentStatus) =>
     ({
       available: 1,
@@ -149,9 +120,8 @@ const CrewManagementPage = () => {
       out_of_service: 4,
     }[status] || 99);
 
-  // 4. --- Memoized Sorting ---
+  // 4. --- Memoized Sorting --- (Unchanged)
 
-  // Memoized sorted list for Personnel
   const sortedPersonnel = useMemo(() => {
     let sortablePersonnel = [...personnel];
     sortablePersonnel.sort((a, b) => {
@@ -162,14 +132,15 @@ const CrewManagementPage = () => {
         aValue = getPersonnelStatusOrder(a.status);
         bValue = getPersonnelStatusOrder(b.status);
       }
-      if (aValue < bValue) return sortConfig.direction === "ascending" ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === "ascending" ? 1 : -1;
+      if (aValue < bValue)
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      if (aValue > bValue)
+        return sortConfig.direction === "ascending" ? 1 : -1;
       return 0;
     });
     return sortablePersonnel;
   }, [personnel, sortConfig]);
 
-  // 🌟 New memoized sorted list for Equipment
   const sortedEquipment = useMemo(() => {
     let sortableEquipment = [...equipment];
     sortableEquipment.sort((a, b) => {
@@ -181,7 +152,6 @@ const CrewManagementPage = () => {
         aValue = getEquipmentStatusOrder(a.status);
         bValue = getEquipmentStatusOrder(b.status);
       } else if (key === "last_maintenance_date") {
-        // Handle date sorting
         aValue = new Date(a.last_maintenance_date).getTime();
         bValue = new Date(b.last_maintenance_date).getTime();
       }
@@ -197,7 +167,6 @@ const CrewManagementPage = () => {
 
   // 5. --- Render ---
 
-  // 🌟 Determine current list and count for pagination
   const currentItems =
     activeTab === "personnel" ? sortedPersonnel : sortedEquipment;
   const currentItemCount = currentItems.length;
@@ -227,9 +196,8 @@ const CrewManagementPage = () => {
         </nav>
       </div>
 
-      {/* 5c. 🌟 Dynamic Controls Bar (Search, Add New) */}
+      {/* 5c. Dynamic Controls Bar (Search, Add New) */}
       <div className="flex flex-col md:flex-row gap-4 justify-between">
-        {/* Dynamic Search Bar */}
         <div className="relative flex-grow">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <FaSearch className="text-secondary-color" />
@@ -238,52 +206,44 @@ const CrewManagementPage = () => {
             type="text"
             placeholder={
               activeTab === "personnel"
-                ? "Search personnel (name, ID, role...)" // [cite: 38]
-                : "Search equipment (type, ID, status...)" // [cite: 66]
+                ? "Search personnel (name, ID, role...)"
+                : "Search equipment (type, ID, station...)"
             }
             className="w-full p-3 h-12 pl-10 form-input rounded-md placeholder-[#ADB5BD]"
           />
         </div>
-        {/* Action Buttons */}
         <div className="flex gap-3">
-          {/* 🌟 Dynamic "Add New" Button */}
           <button
             className={
               activeTab === "personnel"
-                ? "btn-main-red py-2 px-4 rounded-md h-12 justify-center" // Use blue for personnel
-                : "btn-main-red py-2 px-4 rounded-md h-12 justify-center" // Use red for equipment [cite: 4, 72]
+                ? "btn-main-red py-2 px-4 rounded-md h-12 justify-center"
+                : "btn-main-red py-2 px-4 rounded-md h-12 justify-center"
             }
           >
             <FaPlus className="mr-2" />
-            {
-              activeTab === "personnel"
-                ? "Add New Firefighter"
-                : "Add New Equipment" // [cite: 73]
-            }
+            {activeTab === "personnel"
+              ? "Add New Firefighter"
+              : "Add New Equipment"}
           </button>
         </div>
       </div>
 
-      {/* 5d. 🌟 Dynamic Content (The Table or Placeholder) */}
+      {/* 5d. 🌟 Dynamic Content (Now passes no loading/error props) */}
       {activeTab === "personnel" ? (
         <PersonnelTable
           personnel={sortedPersonnel}
-          isLoading={isLoading}
-          error={error}
           sortConfig={sortConfig}
           onSort={handleSort}
         />
       ) : (
         <EquipmentTable
           equipment={sortedEquipment}
-          isLoading={isEquipmentLoading}
-          error={equipmentError}
           sortConfig={equipmentSortConfig}
           onSort={handleEquipmentSort}
         />
       )}
 
-      {/* 5e. 🌟 Dynamic Pagination */}
+      {/* 5e. Dynamic Pagination */}
       <div className="flex items-center justify-between mt-6 text-sm">
         <span className="text-secondary-color">
           Showing 1 to {Math.min(currentItemCount, 10)} of {currentItemCount}{" "}

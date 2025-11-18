@@ -5,11 +5,11 @@
  * list of equipment in a table.
  *
  * How it works:
- * - Receives 'equipment', 'isLoading', 'error', 'sortConfig', 'onSort' props.
+ * - Receives 'equipment', 'sortConfig', and 'onSort' props.
  * - Maps over the 'equipment' array to render table rows.
- * - Imports and uses 'StatusBadge' and 'formatStatusText'.
  * - Headers are clickable and call 'onSort'.
- * - Sort icons are displayed next to the active sort column.
+ * - 🌟 The 'equipment.length === 0' check now handles both
+ * the initial "empty" state and a "no results" state.
  *
  * How it connects:
  * - Rendered by 'CrewManagementPage.tsx' when the equipment tab is active.
@@ -21,8 +21,6 @@ import type {
 } from "../types/crew.types";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import {
-  FaSpinner,
-  FaExclamationTriangle,
   FaSort,
   FaSortUp,
   FaSortDown,
@@ -32,16 +30,12 @@ import { formatStatusText } from "../../../lib/utils";
 // 1. Define the props this component accepts
 type EquipmentTableProps = {
   equipment: EquipmentItem[];
-  isLoading: boolean;
-  error: string | null;
   sortConfig: EquipmentSortConfig;
   onSort: (key: keyof EquipmentItem) => void;
 };
 
 const EquipmentTable = ({
   equipment,
-  isLoading,
-  error,
   sortConfig,
   onSort,
 }: EquipmentTableProps) => {
@@ -58,35 +52,7 @@ const EquipmentTable = ({
 
   // 3. Helper function to render the table body based on state
   const renderTableBody = () => {
-    // 3a. Loading state
-    if (isLoading) {
-      return (
-        <tr>
-          <td colSpan={5} className="p-8 text-center text-secondary-color">
-            <div className="flex justify-center items-center">
-              <FaSpinner className="animate-spin mr-2" />
-              Loading equipment...
-            </div>
-          </td>
-        </tr>
-      );
-    }
-
-    // 3b. Error state
-    if (error) {
-      return (
-        <tr>
-          <td colSpan={5} className="p-8 text-center text-red-400">
-            <div className="flex justify-center items-center">
-              <FaExclamationTriangle className="mr-2" />
-              Error fetching data: {error}
-            </div>
-          </td>
-        </tr>
-      );
-    }
-
-    // 3c. No data state
+    // 3a. No data state
     if (equipment.length === 0) {
       return (
         <tr>
@@ -97,7 +63,7 @@ const EquipmentTable = ({
       );
     }
 
-    // 3d. Success state: map over the data
+    // 3b. Success state: map over the data
     return equipment.map((item) => (
       <tr
         key={item.id}
@@ -123,7 +89,7 @@ const EquipmentTable = ({
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[700px]">
-        {/* 4a. Table Header (matches user request) */}
+        {/* 4a. Table Header (Unchanged) */}
         <thead className="bg-[#3A3F44]">
           <tr>
             <th
