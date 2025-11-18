@@ -31,6 +31,7 @@ import DashboardPage from "./features/dashboard/pages/DashboardPage";
 import IncidentDashboardPage from "./features/incident/pages/IncidentDashboardPage";
 import IncidentDetailsPage from "./features/incident/pages/IncidentDetailsPage";
 import IncidentFormPage from "./features/incident/pages/IncidentFormPage";
+import CrewManagementPage from "./features/crew/pages/CrewManagementPage";
 
 function App() {
   return (
@@ -59,6 +60,9 @@ function App() {
         
         {/* VIEW incident details */}
         <Route path="/incident/:id" element={<IncidentDetailsPage />} />
+
+        {/* Crew Management page */}
+        <Route path="/crew-management" element={<CrewManagementPage />} />
         
         {/* Root redirect */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />

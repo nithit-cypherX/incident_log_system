@@ -28,7 +28,13 @@ type BadgeProps = {
     | "rescue"
     | "hazmat"
     | "public_assist"
-    | "other";
+    | "other"
+    | "available"
+    | "on_duty"
+    | "on_leave"
+    | "in_use"
+    | "maintenance"
+    | "out_of_service";
 };
 
 const StatusBadge = ({ text, type }: BadgeProps) => {
@@ -49,6 +55,14 @@ const StatusBadge = ({ text, type }: BadgeProps) => {
     hazmat: "bg-green-500 text-white",
     public_assist: "bg-cyan-500 text-white",
     other: "bg-gray-400 text-black",
+    // Personnel Statuses 
+    available: "bg-[#28A745] text-white", 
+    on_duty: "bg-[#0D6EFD] text-white", 
+    on_leave: "bg-[#FFC107] text-black", 
+    // Equipment Statuses (from Detail.pdf )
+    in_use: "bg-[#FFC107] text-black", // Yellow 
+    maintenance: "bg-[#DC3545] text-white", // Red 
+    out_of_service: "bg-[#DC3545] text-white", // Red
   };
 
   // Base classes for all badges
