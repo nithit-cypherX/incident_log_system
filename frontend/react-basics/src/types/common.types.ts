@@ -4,13 +4,10 @@
  * Defines common TypeScript types that are shared across
  * multiple features (like 'Incident', 'Personnel', 'Attachment').
  *
- * How it works:
- * We export interfaces and types for our core data.
- *
- * How it connects:
- * - 'features/incident' will import these types.
- * - 'features/dashboard' might import these types.
- * - This prevents duplicating type definitions.
+ * 🌟 --- UPDATED --- 🌟
+ * - Added 'AvailableEquipment' type for the form.
+ * - Added 'AssignedEquipment' type for the details page.
+ * - Added 'assigned_equipment' array to the 'Incident' type.
  */
 
 /**
@@ -60,6 +57,31 @@ export type IncidentType =
   | "public_assist"
   | "other";
 
+// 🌟 --- NEW: EQUIPMENT TYPES --- 🌟
+
+/**
+ * Represents equipment in the selection dropdown.
+ */
+export type AvailableEquipment = {
+  id: number;
+  asset_id: string; // e.g., "ENG-001"
+  type: string;
+  status: string;
+};
+
+/**
+ * Represents equipment that is assigned to an incident.
+ * (This matches the new API response from server.js)
+ */
+export type AssignedEquipment = {
+  id: number; // This is the 'incident_equipment' table ID
+  equipment_id: number; // This is the 'equipment' table ID
+  asset_id: string;
+  type: string;
+  status: string;
+};
+// 🌟 --- END NEW --- 🌟
+
 /**
  * Represents the full Incident data object from the API.
  * (From 'IncidentDetailsPage.tsx')
@@ -80,9 +102,13 @@ export type Incident = {
   created_by_user_id: number;
   assigned_personnel: Personnel[];
   assigned_attachments: Attachment[];
-  // You can add lat/lon here if you fetch them
-  // latitude?: number;
-  // longitude?: number;
+  
+  // 🌟 --- NEW --- 🌟
+  // These fields are now read from the database
+  latitude: number | null;
+  longitude: number | null;
+  assigned_equipment: AssignedEquipment[]; // 🌟 Added this line
+  // 🌟 --- END NEW --- 🌟
 };
 
 /**

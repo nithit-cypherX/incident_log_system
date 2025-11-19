@@ -3,65 +3,74 @@
  * What it does:
  * Renders the "dumb" form for creating or editing an incident.
  *
- * How it works:
- * - It's a "dumb" component that receives all logic and
- * state as props.
- * - It receives all React Hook Form (RHF) methods
- * ('register', 'control', 'formState', etc.).
- * - It uses RHF's 'useFieldArray' to manage the 'selectedCrew' list.
- * - It uses RHF's 'watch' to get the current value of 'userId' and 'role'.
- *
- * How it connects:
- * - 'IncidentFormPage.tsx' renders this and provides all props.
+ * 🌟 --- UPDATED --- 🌟
+ * - Added 'availableEquipment' to props.
+ * - Added 'useFieldArray' for 'selectedEquipment'.
+ * - Added a new <section> for "Equipment Assignment",
+ * mirroring the "Crew Assignment" section.
+ * - Added new RHF watchers for the temp equipment dropdown.
  */
 
 import {
   useFormContext,
   useFieldArray,
-  // 🌟 FIX: Controller is no longer needed here
 } from "react-hook-form";
 import {
   FaPaperclip,
   FaUserPlus,
   FaTrash,
   FaUpload,
+  FaTruck, // 🌟 Added
 } from "react-icons/fa";
-import type { AvailableCrew, Attachment } from "../../../types/common.types";
+// 🌟 Import new types
+import type {
+  AvailableCrew,
+  Attachment,
+  AvailableEquipment, // 🌟 Added
+} from "../../../types/common.types";
 import type { IncidentFormData } from "../types/incident.types";
+// 🌟 --- END --- 🌟
 import FormInput from "../../../components/ui/FormInput";
 import FormSelect from "../../../components/ui/FormSelect";
 import MapDisplay from "../../../components/ui/MapDisplay";
 import IncidentAttachments from "./IncidentAttachments";
+import type { Coordinates } from "../../../services/geocodingService";
 
 // Props this dumb form needs
 type IncidentFormProps = {
   isEditMode: boolean;
-  incidentId?: number; // 🌟 FIX: Changed type to number
-  initialAttachments: Attachment[]; // 🌟 FIX: Added prop
+  incidentId?: number;
+  initialAttachments: Attachment[];
   availableCrew: AvailableCrew[];
+  availableEquipment: AvailableEquipment[]; // 🌟 Added
   // File upload state (for 'create' mode)
   filesToUpload: File[];
   onFilesSelected: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onRemoveFile: (fileName: string) => void;
   // Submit/Cancel handlers
-  onSubmit: (e: React.FormEvent) => void; // This is 'handleSubmit(onFormSubmit)'
+  onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
   isSubmitting: boolean;
+  mapCoords: Coordinates | null;
+  mapGeoError: string | null;
 };
 
 const IncidentForm = ({
   isEditMode,
-  incidentId, // 🌟 FIX: Destructure the new props
-  initialAttachments, // 🌟 FIX: Destructure the new props
+  incidentId,
+  initialAttachments,
   availableCrew,
+  availableEquipment, // 🌟 Destructure
   filesToUpload,
   onFilesSelected,
   onRemoveFile,
   onSubmit,
   onCancel,
   isSubmitting,
+  mapCoords,
+  mapGeoError,
 }: IncidentFormProps) => {
-  // Get RHF methods from the context provided by 'IncidentFormPage'
+  // Get RHF methods from the context
   const {
     register,
     control,
@@ -71,14 +80,33 @@ const IncidentForm = ({
   } = useFormContext<IncidentFormData>();
 
   // RHF hook for managing the 'selectedCrew' array
-  const { fields, append, remove } = useFieldArray({
+  const {
+    fields: crewFields,
+    append: crewAppend,
+    remove: crewRemove,
+  } = useFieldArray({
     control,
     name: "selectedCrew",
   });
 
+  // 🌟 --- NEW: RHF hook for 'selectedEquipment' --- 🌟
+  const {
+    fields: equipmentFields,
+    append: equipmentAppend,
+    remove: equipmentRemove,
+  } = useFieldArray({
+    control,
+    name: "selectedEquipment",
+  });
+  // 🌟 --- END NEW --- 🌟
+
   // Watch the values of the temporary crew selection dropdowns
   const currentCrewId = watch("temp_crewId" as any);
   const currentCrewRole = watch("temp_role" as any);
+
+  // 🌟 --- NEW: Watch temp equipment dropdown --- 🌟
+  const currentEquipmentId = watch("temp_equipmentId" as any);
+  // 🌟 --- END NEW --- 🌟
 
   // Add a selected crew member to the list
   const handleAddCrew = () => {
@@ -87,14 +115,14 @@ const IncidentForm = ({
       return;
     }
     const userId = parseInt(currentCrewId, 10);
-    if (fields.find((c) => c.userId === userId)) {
+    if (crewFields.find((c) => c.userId === userId)) {
       alert("This crew member is already added.");
       return;
     }
 
     const user = availableCrew.find((u) => u.id === userId);
     if (user) {
-      append({
+      crewAppend({
         userId: user.id,
         userName: user.full_name,
         role: currentCrewRole,
@@ -104,6 +132,30 @@ const IncidentForm = ({
       setValue("temp_role" as any, "");
     }
   };
+
+  // 🌟 --- NEW: Handler for adding equipment --- 🌟
+  const handleAddEquipment = () => {
+    if (!currentEquipmentId) {
+      alert("Please select a piece of equipment.");
+      return;
+    }
+    const equipmentId = parseInt(currentEquipmentId, 10);
+    if (equipmentFields.find((e) => e.equipmentId === equipmentId)) {
+      alert("This equipment is already added.");
+      return;
+    }
+
+    const equipment = availableEquipment.find((e) => e.id === equipmentId);
+    if (equipment) {
+      equipmentAppend({
+        equipmentId: equipment.id,
+        assetId: equipment.asset_id,
+      });
+      // Reset dropdown
+      setValue("temp_equipmentId" as any, "");
+    }
+  };
+  // 🌟 --- END NEW --- 🌟
 
   return (
     <form
@@ -116,6 +168,7 @@ const IncidentForm = ({
 
       {/* Basic Incident Details */}
       <section className="mb-8">
+        {/* ... (no changes in this section) ... */}
         <h3 className="text-lg font-semibold border-b border-[#495057] pb-2 mb-4">
           Basic Incident Details
         </h3>
@@ -201,6 +254,7 @@ const IncidentForm = ({
 
       {/* Incident Location */}
       <section className="mb-8">
+        {/* ... (no changes in this section) ... */}
         <h3 className="text-lg font-semibold border-b border-[#495057] pb-2 mb-4">
           Incident Location
         </h3>
@@ -233,13 +287,19 @@ const IncidentForm = ({
             error={errors.zip_code?.message}
           />
           <div className="md:col-span-3">
-            <MapDisplay />
+            <MapDisplay
+              lat={mapCoords?.lat}
+              lon={mapCoords?.lon}
+              error={mapGeoError}
+              isInteractive={true} // The form map is interactive
+            />
           </div>
         </div>
       </section>
 
       {/* Initial Crew Assignment */}
       <section className="mb-8">
+        {/* ... (no changes in this section) ... */}
         <h3 className="text-lg font-semibold border-b border-[#495057] pb-2 mb-4">
           {isEditMode ? "Update Crew Assignment" : "Initial Crew Assignment"}
         </h3>
@@ -277,10 +337,10 @@ const IncidentForm = ({
         </div>
 
         <div className="mt-6 space-y-3">
-          {fields.length === 0 ? (
+          {crewFields.length === 0 ? (
             <p className="text-secondary-color text-sm">No crew assigned yet.</p>
           ) : (
-            fields.map((c, index) => (
+            crewFields.map((c, index) => (
               <div
                 key={c.id}
                 className="flex items-center justify-between p-3 bg-[#343A40] rounded-md"
@@ -293,7 +353,7 @@ const IncidentForm = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => remove(index)}
+                  onClick={() => crewRemove(index)}
                   className="text-red-500 hover:text-red-400"
                 >
                   <FaTrash />
@@ -304,23 +364,78 @@ const IncidentForm = ({
         </div>
       </section>
 
+      {/* 🌟 --- NEW: Equipment Assignment Section --- 🌟 */}
+      <section className="mb-8">
+        <h3 className="text-lg font-semibold border-b border-[#495057] pb-2 mb-4">
+          {isEditMode
+            ? "Update Equipment Assignment"
+            : "Initial Equipment Assignment"}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+          <div className="md:col-span-2">
+            <FormSelect
+              label="Select Equipment (Available Only)"
+              {...register("temp_equipmentId" as any)} // Not part of schema
+            >
+              <option value="">Select Equipment...</option>
+              {availableEquipment.map((equip) => (
+                <option key={equip.id} value={equip.id}>
+                  {equip.asset_id} ({equip.type})
+                </option>
+              ))}
+            </FormSelect>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAddEquipment}
+            className="btn-main-gray py-2 px-4 h-12 rounded-md justify-center"
+          >
+            <FaTruck className="mr-2" /> Add Equipment
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {equipmentFields.length === 0 ? (
+            <p className="text-secondary-color text-sm">
+              No equipment assigned yet.
+            </p>
+          ) : (
+            equipmentFields.map((e, index) => (
+              <div
+                key={e.id}
+                className="flex items-center justify-between p-3 bg-[#343A40] rounded-md"
+              >
+                <div>
+                  <span className="font-semibold text-white">{e.assetId}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => equipmentRemove(index)}
+                  className="text-red-500 hover:text-red-400"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+      {/* 🌟 --- END NEW SECTION --- 🌟 */}
+
       {/* Attachments Section */}
       <section className="mb-8">
+        {/* ... (no changes in this section) ... */}
         <h3 className="text-lg font-semibold border-b border-[#495057] pb-2 mb-4">
           Attachments
         </h3>
-
-        {/* 🌟 --- FIX: Replaced Controller with direct render --- 🌟 */}
         {isEditMode ? (
-          // In Edit Mode, we show the full attachment component
           <IncidentAttachments
-            // We can safely use '!' because isEditMode is true
-            incidentId={incidentId!} 
-            initialAttachments={initialAttachments} // Use the new prop
-            isReadOnly={false} // Allow upload and delete
+            incidentId={incidentId!}
+            initialAttachments={initialAttachments}
+            isReadOnly={false}
           />
         ) : (
-          // In Create Mode, show the simple file selector
           <div>
             <input
               type="file"
@@ -366,11 +481,11 @@ const IncidentForm = ({
             </div>
           </div>
         )}
-        {/* 🌟 --- END OF FIX --- 🌟 */}
       </section>
 
       {/* Action Buttons */}
       <div className="flex justify-end gap-4 mt-8">
+        {/* ... (no changes in this section) ... */}
         <button
           type="button"
           onClick={onCancel}

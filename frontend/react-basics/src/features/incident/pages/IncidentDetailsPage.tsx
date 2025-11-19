@@ -1,26 +1,22 @@
 // File: src/features/incident/pages/IncidentDetailsPage.tsx
 /**
- * What it does:
- * The "smart" page for viewing a single incident's details.
- *
- * How it works:
- * - Gets the 'id' from the URL using 'useParams'.
- * - 'useEffect' to fetch data from 'incidentService.getIncidentById'.
- * - Manages 'incident', 'loading', and 'error' state.
- * - Handles the 'handleDelete' logic.
- * - Renders the "dumb" components:
- * - <IncidentOverview>
- * - <MapDisplay>
- * - <IncidentAttachments>
- * - <CurrentCrew>
- *
- * How it connects:
- * - 'App.tsx' routes '/incident/:id' to this page.
+ * 🌟 --- UPDATED --- 🌟
+ * - Imported 'PDFDownloadLink' and 'IncidentReportPDF'.
+ * - Added the "Export Report" button in the header.
  */
 
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { FaEdit, FaTrash, FaExclamationTriangle } from "react-icons/fa";
+import {
+  FaEdit,
+  FaTrash,
+  FaExclamationTriangle,
+  FaFilePdf, // 🌟 Added icon
+} from "react-icons/fa";
+// 🌟 Import PDF tools
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import IncidentReportPDF from "../components/IncidentReportPDF";
+// --------------------
 import { incidentService } from "../services/incidentService";
 import type { Incident } from "../../../types/common.types";
 import { formatDate } from "../../../lib/utils";
@@ -30,7 +26,6 @@ import MapDisplay from "../../../components/ui/MapDisplay";
 import IncidentAttachments from "../components/IncidentAttachments";
 import StatusBadge from "../../../components/ui/StatusBadge";
 
-// --- Main Page Component ---
 const IncidentDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -77,7 +72,6 @@ const IncidentDetailsPage = () => {
     setDeleteError(null);
     try {
       await incidentService.deleteIncident(id);
-      // On success, navigate back to the dashboard
       navigate("/incident-dashboard");
     } catch (e: any) {
       setDeleteError(e.message);
@@ -142,6 +136,25 @@ const IncidentDetailsPage = () => {
 
           {/* Right side: Action Buttons */}
           <div className="flex gap-3 mt-4 md:mt-0">
+            {/* 🌟 --- NEW EXPORT BUTTON --- 🌟 */}
+            <PDFDownloadLink
+              document={<IncidentReportPDF incident={incident} />}
+              fileName={`incident-${incident.incident_code}.pdf`}
+              className="btn-main-gray py-2 px-4 rounded-md justify-center"
+            >
+              {/* PDFDownloadLink provides a loading state for the generation process */}
+              {({ loading }) =>
+                loading ? (
+                  "Generating..."
+                ) : (
+                  <span className="flex items-center">
+                    <FaFilePdf className="mr-2" /> Export Report
+                  </span>
+                )
+              }
+            </PDFDownloadLink>
+            {/* 🌟 --- END NEW BUTTON --- 🌟 */}
+
             <button
               onClick={handleEdit}
               className="btn-main-gray py-2 px-4 rounded-md justify-center"
@@ -188,18 +201,25 @@ const IncidentDetailsPage = () => {
             description={incident.description}
           />
 
-          <MapDisplay />
+          <MapDisplay
+            lat={incident.latitude}
+            lon={incident.longitude}
+            isInteractive={false}
+          />
 
           <IncidentAttachments
             incidentId={incident.id}
             initialAttachments={incident.assigned_attachments}
-            isReadOnly={true} // Details page is read-only
+            isReadOnly={true}
           />
         </div>
 
         {/* Right Column (Narrower) */}
         <div className="lg:col-span-1 space-y-8">
-          <CurrentCrew crew={incident.assigned_personnel} />
+          <CurrentCrew 
+            crew={incident.assigned_personnel}
+            equipment={incident.assigned_equipment}
+          />
         </div>
       </div>
     </div>

@@ -3,16 +3,9 @@
  * What it does:
  * Holds global, reusable helper functions.
  *
- * How it works:
- * - 'formatDate' is the same function from your 'IncidentDashboard.tsx',
- * but now it's in a central place.
- * - 'cn' is a utility from the guide (Part 8) for merging Tailwind classes.
- * (You'll need to `npm install clsx tailwind-merge`)
- *
- * How it connects:
- * - Any component that needs to format a date can import 'formatDate'.
- * - Any component that needs to conditionally apply Tailwind classes
- * can import 'cn'.
+ * 🌟 --- UPDATED --- 🌟
+ * Removed 'formatStatusText' as it was based on mock data.
+ * Our new database-driven types are already formatted correctly.
  */
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -27,7 +20,6 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Formats an ISO date string into a "YYYY-MM-DD HH:MM" format.
- * Moved from 'IncidentDashboardPage.tsx'.
  */
 export const formatDate = (isoString: string) => {
   if (!isoString) return "N/A";
@@ -47,7 +39,6 @@ export const formatDate = (isoString: string) => {
 
 /**
  * Formats an ISO string for use in <input type="date"> and <input type="time">.
- * Moved from 'NewIncidentPage.tsx'.
  */
 export const formatISOForInputs = (isoString: string) => {
   if (!isoString) return getCurrentDateTime();
@@ -66,7 +57,6 @@ export const formatISOForInputs = (isoString: string) => {
 
 /**
  * Gets the current date and time for form inputs.
- * Moved from 'NewIncidentPage.tsx'.
  */
 export const getCurrentDateTime = () => {
   const now = new Date();
@@ -76,26 +66,5 @@ export const getCurrentDateTime = () => {
   const time = now.toTimeString().split(" ")[0].substring(0, 5); // "HH:MM"
   return { date, time };
 };
-// 🌟 --- NEW --- 🌟
-/**
- * Formats a status string (e.g., "on_duty" or "available")
- * into a capitalized, human-readable format (e.g., "On Duty", "Available").
- *
- * What it does:
- * - Replaces underscores with spaces.
- * - Capitalizes the first letter of each word.
- *
- * How it works:
- * - Uses regex to split the string, map over words, and rejoin.
- *
- * @param statusText The raw status string.
- * @returns A formatted, capitalized string.
- */
-export const formatStatusText = (statusText: string): string => {
-  if (!statusText) return "N/A";
-  return statusText
-    .split("_") // Splits "on_duty" into ["on", "duty"]
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // "on" -> "On", "duty" -> "Duty"
-    .join(" "); // Joins ["On", "Duty"] into "On Duty"
-};
-// 🌟 --- END NEW --- 🌟
+
+// 🌟 --- REMOVED 'formatStatusText' --- 🌟

@@ -3,11 +3,11 @@
  * What it does:
  * Defines the validation rules for the main incident form (Guide Part 4).
  *
- * How it works:
- * - Creates a 'zod' schema for all form fields.
- * - 'z.object' defines the shape.
- * - '.min(1)' means 'required'.
- * - We create a 'SelectedCrewMember' schema to validate the array.
+ * 🌟 --- UPDATED --- 🌟
+ * - Added 'selectedEquipmentSchema' to validate equipment
+ * added to the form list (matches 'selectedCrewSchema').
+ * - Added 'selectedEquipment' array to the main schema.
+ * - Added 'initial_equipment' array (of numbers) for the API payload.
  *
  * How it connects:
  * - 'IncidentFormPage.tsx' uses this to power React Hook Form.
@@ -22,6 +22,14 @@ export const selectedCrewSchema = z.object({
   userName: z.string(), // Not validated, just part of the object
   role: z.string().min(1, "Role is required"),
 });
+
+// 🌟 --- NEW --- 🌟
+// Schema for a single assigned equipment item
+export const selectedEquipmentSchema = z.object({
+  equipmentId: z.number().min(1, "Equipment ID is required"),
+  assetId: z.string(), // Not validated, just for display
+});
+// 🌟 --- END NEW --- 🌟
 
 // Main schema for the incident form
 export const incidentSchema = z.object({
@@ -46,6 +54,11 @@ export const incidentSchema = z.object({
   // This is the array of assigned crew members
   selectedCrew: z.array(selectedCrewSchema),
   
+  // 🌟 --- NEW --- 🌟
+  // This is the array of assigned equipment
+  selectedEquipment: z.array(selectedEquipmentSchema),
+  // 🌟 --- END NEW --- 🌟
+  
   // These are for the API payload, not direct form fields,
   // but we can put them in the RHF data object.
   reported_at: z.string().optional(),
@@ -57,4 +70,13 @@ export const incidentSchema = z.object({
       })
     )
     .optional(),
+  
+  // 🌟 --- NEW --- 🌟
+  // This is the API payload for equipment (just an array of IDs)
+  initial_equipment: z.array(z.number()).optional(),
+  // 🌟 --- END NEW --- 🌟
+
+  // Add coordinates to our form schema.
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
 });

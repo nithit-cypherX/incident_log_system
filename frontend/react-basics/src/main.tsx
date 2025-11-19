@@ -18,6 +18,7 @@ import { BrowserRouter as Router } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import App from "./App.tsx";
 import "./index.css"; // Keep your global styles
+import 'leaflet/dist/leaflet.css';
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

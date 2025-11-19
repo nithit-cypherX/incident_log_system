@@ -4,15 +4,22 @@
  * Infers TypeScript types from our Zod schemas (Guide Part 4)
  * and defines shared types for the incident feature.
  *
+ * 🌟 --- UPDATED --- 🌟
+ * - Imports 'selectedEquipmentSchema'.
+ * - Exports the inferred 'SelectedEquipment' type.
+ *
  * How it connects:
  * - 'IncidentFormPage.tsx' and 'IncidentForm.tsx'
  * import these types to use with React Hook Form.
- * - 'IncidentDashboardPage.tsx' and 'IncidentListTable.tsx'
- * import these types for the incident list.
  */
 
 import { z } from "zod";
-import { incidentSchema, selectedCrewSchema } from "../validators/incidentSchema";
+// 🌟 Import all schemas
+import {
+  incidentSchema,
+  selectedCrewSchema,
+  selectedEquipmentSchema, // 🌟 Added
+} from "../validators/incidentSchema";
 
 // The main form data type
 export type IncidentFormData = z.infer<typeof incidentSchema>;
@@ -20,7 +27,11 @@ export type IncidentFormData = z.infer<typeof incidentSchema>;
 // The type for a single crew member in the form's list
 export type SelectedCrewMember = z.infer<typeof selectedCrewSchema>;
 
-// 🌟 --- ADDED TYPES --- 🌟
+// 🌟 --- NEW --- 🌟
+// The type for a single equipment item in the form's list
+export type SelectedEquipment = z.infer<typeof selectedEquipmentSchema>;
+// 🌟 --- END NEW --- 🌟
+
 // These types were moved from IncidentDashboardPage.tsx
 
 /**
@@ -57,4 +68,3 @@ export type FilterState = {
   incidentType: string;
   priority: string;
 };
-// 🌟 --- END OF ADDED TYPES --- 🌟

@@ -1,24 +1,11 @@
 // File: src/features/incident/pages/IncidentFormPage.tsx
 /**
- * What it does:
- * The "smart" page for CREATE and EDIT incident.
- *
- * How it works:
- * - Follows the "Smart Component" pattern (Guide Part 2).
- * - Gets 'id' from 'useParams' to know if it's 'edit' mode.
- * - Uses 'React Hook Form' (useForm) with 'zodResolver'.
- * - 'useEffect' to fetch data in 'edit' mode:
- * - 'incidentService.getIncidentById'
- * - 'incidentService.getAvailableCrew'
- * - 'reset(formData)' to populate the form with fetched data.
- * - Manages 'filesToUpload' state for 'create' mode.
- * - 'onFormSubmit' is the "smart" function that decides to
- * call 'createIncident' or 'updateIncident'.
- * - It renders the "dumb" <IncidentForm> component and provides
- * all logic and data as props, wrapped in <FormProvider>.
- *
- * How it connects:
- * - 'App.tsx' routes '/incident/new' and '/incident/edit/:id' here.
+ * 🌟 --- UPDATED --- 🌟
+ * - Added 'availableEquipment' state.
+ * - 'useEffect' now also fetches 'incidentService.getAvailableEquipment'.
+ * - In 'edit' mode, it now populates the form with 'assigned_equipment'.
+ * - 'onFormSubmit' now includes 'initial_equipment' in the API payload.
+ * - Passes 'availableEquipment' as a prop to <IncidentForm>.
  */
 
 import { useState, useEffect } from "react";
@@ -28,13 +15,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { incidentService } from "../services/incidentService";
 import { incidentSchema } from "../validators/incidentSchema";
 import type { IncidentFormData } from "../types/incident.types";
-// 🌟 FIX: Import Attachment type
-import type { AvailableCrew, Attachment } from "../../../types/common.types"; 
+// 🌟 Import new type
+import type {
+  AvailableCrew,
+  Attachment,
+  AvailableEquipment, // 🌟 Added
+} from "../../../types/common.types";
 import {
   getCurrentDateTime,
   formatISOForInputs,
 } from "../../../lib/utils";
 import IncidentForm from "../components/IncidentForm";
+import { useDebounce } from "../../../hooks/useDebounce";
+import { geocodingService, } from "../../../services/geocodingService";
+import type {Coordinates} from "../../../services/geocodingService";
 
 const IncidentFormPage = () => {
   const navigate = useNavigate();
@@ -45,14 +39,19 @@ const IncidentFormPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [availableCrew, setAvailableCrew] = useState<AvailableCrew[]>([]);
+  // 🌟 --- NEW STATE --- 🌟
+  const [availableEquipment, setAvailableEquipment] = useState<
+    AvailableEquipment[]
+  >([]);
+  // 🌟 --- END NEW STATE --- 🌟
   const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
-  // 🌟 FIX: Add state for initial attachments
   const [initialAttachments, setInitialAttachments] = useState<Attachment[]>([]);
+  const [mapCoords, setMapCoords] = useState<Coordinates | null>(null);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   // --- React Hook Form ---
   const { date: defaultDate, time: defaultTime } = getCurrentDateTime();
-  
-  // 1. Setup 'useForm'
+
   const methods = useForm<IncidentFormData>({
     resolver: zodResolver(incidentSchema),
     defaultValues: {
@@ -68,12 +67,25 @@ const IncidentFormPage = () => {
       zip_code: "",
       description: "",
       selectedCrew: [],
-      reported_at: "", // Ensure all schema fields are present
-      initial_crew: [], // Ensure all schema fields are present
+      selectedEquipment: [], // 🌟 Added
+      reported_at: "",
+      initial_crew: [],
+      initial_equipment: [], // 🌟 Added
+      latitude: null,
+      longitude: null,
     },
   });
 
-  // 2. Fetch data on 'edit' mode
+  // --- Address Debouncing (no changes) ---
+  const watchedAddress = methods.watch("address");
+  const watchedCity = methods.watch("city");
+  const watchedState = methods.watch("state");
+  const debouncedAddress = useDebounce(
+    `${watchedAddress} ${watchedCity} ${watchedState}`,
+    1000 // Wait 1 second after user stops typing
+  );
+
+  // 2. Fetch data
   useEffect(() => {
     // Fetch all available crew for the dropdown
     const fetchCrew = async () => {
@@ -85,6 +97,19 @@ const IncidentFormPage = () => {
       }
     };
 
+    // 🌟 --- NEW: Fetch all available equipment --- 🌟
+    const fetchEquipment = async () => {
+      try {
+        const data = await incidentService.getAvailableEquipment();
+        // Filter out any equipment that is 'In_Use' or 'Maintenance', etc.
+        const available = data.filter(e => e.status === 'Available');
+        setAvailableEquipment(available);
+      } catch (err: any) {
+        setError(err.message);
+      }
+    };
+    // 🌟 --- END NEW --- 🌟
+
     // Fetch existing incident data if we are in EDIT mode
     const fetchIncidentData = async () => {
       if (!incidentId) return;
@@ -94,8 +119,6 @@ const IncidentFormPage = () => {
         const data = await incidentService.getIncidentById(incidentId);
         const { date, time } = formatISOForInputs(data.reported_at);
 
-        // 🌟 FIX: Separate form data from other data
-        // Only include fields that are in the Zod schema
         const formData: IncidentFormData = {
           title: data.title,
           incident_type: data.incident_type,
@@ -108,21 +131,33 @@ const IncidentFormPage = () => {
           state: data.state,
           zip_code: data.zip_code,
           description: data.description,
+          // Populate crew
           selectedCrew: data.assigned_personnel.map((p: any) => ({
             userId: p.user_id,
             userName: p.user_name,
             role: p.role_on_incident,
           })),
-          reported_at: data.reported_at, // This is in the schema
-          initial_crew: [], // This is in the schema
+          // 🌟 --- NEW: Populate equipment --- 🌟
+          selectedEquipment: data.assigned_equipment.map((e: any) => ({
+            equipmentId: e.equipment_id,
+            assetId: e.asset_id,
+          })),
+          // 🌟 --- END NEW --- 🌟
+          reported_at: data.reported_at,
+          initial_crew: [],
+          initial_equipment: [], // 🌟 Added
+          latitude: data.latitude,
+          longitude: data.longitude,
         };
 
         // 3. Populate the form with fetched data
         methods.reset(formData);
 
-        // 🌟 FIX: Set the attachments in their own state
         setInitialAttachments(data.assigned_attachments || []);
 
+        if (data.latitude && data.longitude) {
+          setMapCoords({ lat: data.latitude, lon: data.longitude });
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -131,10 +166,35 @@ const IncidentFormPage = () => {
     };
 
     fetchCrew();
+    fetchEquipment(); // 🌟 Call new function
     fetchIncidentData();
   }, [incidentId, methods]);
 
-  // --- File Handlers (for 'create' mode) ---
+  // --- Geocoding effect (no changes) ---
+  useEffect(() => {
+    // Only run if the debounced address is not empty
+    if (debouncedAddress && debouncedAddress.trim().length > 5) {
+      const fetchCoords = async () => {
+        setGeoError(null); // Clear old errors
+        try {
+          // Use our new service!
+          const coords = await geocodingService.getCoordsFromAddress(
+            debouncedAddress
+          );
+          setMapCoords(coords);
+          // Set the coordinates in the form data
+          methods.setValue("latitude", coords.lat);
+          methods.setValue("longitude", coords.lon);
+        } catch (err: any) {
+          setGeoError(err.message); // Show error on the map
+          setMapCoords(null); // Clear old coords
+        }
+      };
+      fetchCoords();
+    }
+  }, [debouncedAddress, methods]);
+  
+  // --- File Handlers (no changes) ---
   const onFilesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
@@ -142,14 +202,13 @@ const IncidentFormPage = () => {
       e.target.value = ""; // Allow re-selecting same file
     }
   };
-
   const onRemoveFile = (fileName: string) => {
     setFilesToUpload((prevFiles) =>
       prevFiles.filter((file) => file.name !== fileName)
     );
   };
 
-  // --- Cancel Handler ---
+  // --- Cancel Handler (no changes) ---
   const onCancel = () => {
     isEditMode
       ? navigate(`/incident/${incidentId}`)
@@ -158,19 +217,25 @@ const IncidentFormPage = () => {
 
   // 4. Main "Smart" Submit Function
   const onFormSubmit = async (formData: IncidentFormData) => {
-    // Use the 'loading' state from the page, not just RHF's 'isSubmitting'
-    setLoading(true); 
+    setLoading(true);
     setError(null);
 
     // Format data for the API
     const apiPayload = {
       ...formData,
       reported_at: `${formData.date} ${formData.time}:00`,
+      // Format crew
       initial_crew: formData.selectedCrew.map((c) => ({
         user_id: c.userId,
         role_on_incident: c.role,
       })),
+      // 🌟 --- NEW: Format equipment --- 🌟
+      // We just need an array of the equipment IDs
+      initial_equipment: formData.selectedEquipment.map((e) => e.equipmentId),
+      // 🌟 --- END NEW --- 🌟
       created_by_user_id: 1, // Placeholder
+      latitude: mapCoords?.lat,
+      longitude: mapCoords?.lon,
     };
 
     try {
@@ -196,8 +261,8 @@ const IncidentFormPage = () => {
 
       // On success, navigate to the details page
       navigate(`/incident/${newOrExistingId}`);
-
-    } catch (err: any) {
+    } catch (err: any)
+      {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -210,17 +275,18 @@ const IncidentFormPage = () => {
     <FormProvider {...methods}>
       <IncidentForm
         isEditMode={isEditMode}
-        // 🌟 FIX: Pass the ID and attachments as props
         incidentId={incidentId ? Number(incidentId) : undefined}
-        initialAttachments={initialAttachments} 
+        initialAttachments={initialAttachments}
         availableCrew={availableCrew}
+        availableEquipment={availableEquipment} // 🌟 Pass new prop
         filesToUpload={filesToUpload}
         onFilesSelected={onFilesSelected}
         onRemoveFile={onRemoveFile}
-        // Pass the RHF handleSubmit wrapper
         onSubmit={methods.handleSubmit(onFormSubmit)}
         onCancel={onCancel}
-        isSubmitting={loading || methods.formState.isSubmitting} // Check both
+        isSubmitting={loading || methods.formState.isSubmitting}
+        mapCoords={mapCoords}
+        mapGeoError={geoError}
       />
     </FormProvider>
   );

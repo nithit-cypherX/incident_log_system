@@ -3,22 +3,21 @@
  * What it does:
  * Handles ALL API requests for the 'incident' feature.
  *
- * How it works:
- * - Implements the "Service Pattern" (Guide Part 3).
- * - 'getAllIncidents', 'searchIncidents', 'getIncidentById', etc.
- * - It also includes file upload and crew-related fetches.
- * - Uses 'apiClient' for all requests.
+ * 🌟 --- UPDATED --- 🌟
+ * - Imported the new 'AvailableEquipment' type.
+ * - Added a new function 'getAvailableEquipment' to fetch
+ * all equipment for the form dropdown.
  *
  * How it connects:
- * - 'IncidentDashboardPage' uses 'getAllIncidents' and 'searchIncidents'.
- * - 'IncidentDetailsPage' uses 'getIncidentById' and 'deleteIncident'.
- * - 'IncidentFormPage' uses 'getIncidentById', 'createIncident',
- * 'updateIncident', 'getAvailableCrew', and 'uploadAttachment'.
- * - 'IncidentAttachments.tsx' uses 'deleteAttachment'.
+ * - 'IncidentFormPage' will now call 'getAvailableEquipment'.
  */
 
 import apiClient from "../../../lib/apiClient";
-import type { Incident, AvailableCrew } from "../../../types/common.types";
+import type {
+  Incident,
+  AvailableCrew,
+  AvailableEquipment, // 🌟 Added
+} from "../../../types/common.types";
 import type { IncidentFormData } from "../types/incident.types";
 import type { Attachment } from "../../../types/common.types";
 
@@ -78,12 +77,23 @@ export const incidentService = {
     await apiClient.delete(`/incidents/${id}`);
   },
 
-  // --- Crew ---
+  // --- Crew & Equipment ---
 
   getAvailableCrew: async (): Promise<AvailableCrew[]> => {
     const { data } = await apiClient.get<AvailableCrew[]>("/personnel");
     return data;
   },
+
+  // 🌟 --- NEW FUNCTION --- 🌟
+  /**
+   * Fetches all available equipment for the form dropdown.
+   */
+  getAvailableEquipment: async (): Promise<AvailableEquipment[]> => {
+    // This reuses the endpoint we already built for the Crew page!
+    const { data } = await apiClient.get<AvailableEquipment[]>("/equipment");
+    return data;
+  },
+  // 🌟 --- END NEW --- 🌟
 
   // --- Attachments ---
 

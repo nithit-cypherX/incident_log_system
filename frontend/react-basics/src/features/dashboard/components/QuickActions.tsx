@@ -33,12 +33,12 @@ const QuickActions = () => {
         >
           <FaList className="mr-2" /> View All Incidents
         </button>
+        {/* 🌟 --- FIX --- 🌟 */}
         <button
-          onClick={() => {
-            /* No page for this yet */
-          }}
+          onClick={() => navigate("/crew-management")}
           className="flex-1 bg-[#495057] hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-md transition-colors flex items-center justify-center text-lg"
         >
+        {/* 🌟 --- END FIX --- 🌟 */}
           <FaUsers className="mr-2" /> Manage Crews
         </button>
       </div>

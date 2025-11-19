@@ -3,160 +3,113 @@
  * What it does:
  * Handles all API (network) requests for the crew feature.
  *
+ * 🌟 --- UPDATED --- 🌟
+ * This service is now connected to the REAL backend API.
+ * All mock data has been removed.
+ *
  * How it works:
- * - Implements the "Service Pattern".
- * - Since no backend is required, this service returns
- * mock data after a short delay to simulate a network request.
+ * - Implements the "Service Pattern" (Guide Part 3).
+ * - Imports 'apiClient' to make real network requests.
+ * - Provides full CRUD (Create, Read, Update, Delete) functions.
  *
  * How it connects:
- * - 'CrewManagementPage.tsx' will import and call
- * 'crewService.getPersonnel' and 'crewService.getEquipment'.
+ * - 'CrewManagementPage.tsx' will import and call these functions.
  */
 
+import apiClient from "../../../lib/apiClient";
 import type {
   PersonnelMember,
-  EquipmentItem, 
-  EquipmentStatus,
+  PersonnelFormData,
+  EquipmentItem,
+  EquipmentFormData,
 } from "../types/crew.types";
 
-// --- Personnel Mock Data (Unchanged) ---
-const MOCK_PERSONNEL_DATA: PersonnelMember[] = [
-  {
-    id: 1,
-    personnel_id: "FC12345",
-    name: "Ethan Carter",
-    rank_role: "Captain",
-    station: "Station 1",
-    certifications: "EMT, Firefighter I",
-    status: "available",
-    contact: "555-123-4567",
-  },
-  {
-    id: 2,
-    personnel_id: "FC67890",
-    name: "Olivia Bennett",
-    rank_role: "Lieutenant",
-    station: "Station 2",
-    certifications: "Paramedic, Firefighter II",
-    status: "on_duty",
-    contact: "555-987-6543",
-  },
-  {
-    id: 3,
-    personnel_id: "FC11223",
-    name: "Noah Thompson",
-    rank_role: "Firefighter",
-    station: "Station 3",
-    certifications: "Firefighter I",
-    status: "available",
-    contact: "555-111-2222",
-  },
-  {
-    id: 4,
-    personnel_id: "FC33445",
-    name: "Ava Rodriguez",
-    rank_role: "Firefighter",
-    station: "Station 1",
-    certifications: "EMT, Firefighter I",
-    status: "on_leave",
-    contact: "555-333-4444",
-  },
-  {
-    id: 5,
-    personnel_id: "FC55667",
-    name: "Liam Chen",
-    rank_role: "Driver",
-    station: "Station 2",
-    certifications: "Driver Ops, EMT",
-    status: "available",
-    contact: "555-444-5555",
-  },
-  {
-    id: 6,
-    personnel_id: "FC77889",
-    name: "Sophia Patel",
-    rank_role: "Paramedic",
-    station: "Station 3",
-    certifications: "Paramedic, Hazmat Ops",
-    status: "on_duty",
-    contact: "555-666-7777",
-  },
-];
-
-// 🌟 --- NEW --- 🌟
-// Mock data for equipment, based on your SQL snippet.
-// I've standardized the statuses to lowercase with underscores
-// to match our type conventions (e.g., 'on_duty').
-const MOCK_EQUIPMENT_DATA: EquipmentItem[] = [
-  {
-    id: 1,
-    asset_id: "ENG-001",
-    type: "Engine",
-    status: "in_use",
-    last_maintenance_date: "2025-09-12",
-  },
-  {
-    id: 2,
-    asset_id: "LAD-002",
-    type: "Ladder",
-    status: "available",
-    last_maintenance_date: "2025-09-10",
-  },
-  {
-    id: 3,
-    asset_id: "AMB-003",
-    type: "Ambulance",
-    status: "available",
-    last_maintenance_date: "2025-09-15",
-  },
-  {
-    id: 4,
-    asset_id: "TOOL-004",
-    type: "Tool",
-    status: "maintenance",
-    last_maintenance_date: "2025-09-05",
-  },
-  {
-    id: 5,
-    asset_id: "ENG-005",
-    type: "Engine",
-    status: "out_of_service",
-    last_maintenance_date: "2025-08-30",
-  },
-];
-
 export const crewService = {
+  // --- Personnel CRUD ---
+
   /**
-   * Fetches the list of all personnel.
-   * (Simulated API call)
+   * [READ] Fetches the list of all personnel.
    */
-  getPersonnel: (): Promise<PersonnelMember[]> => {
-    console.log("Mock Service: Fetching personnel...");
-    // Simulate a network delay
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(MOCK_PERSONNEL_DATA);
-      }, 500); // 0.5 second delay
-    });
+  getPersonnel: async (): Promise<PersonnelMember[]> => {
+    const { data } = await apiClient.get<PersonnelMember[]>("/personnel");
+    return data;
   },
 
   /**
-   * Fetches the list of all equipment.
-   * (Simulated API call)
+   * [CREATE] Creates a new personnel member.
    */
-  getEquipment: (): Promise<EquipmentItem[]> => {
-    console.log("Mock Service: Fetching equipment...");
-    // Simulate a network delay
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(MOCK_EQUIPMENT_DATA);
-      }, 750); // Slightly different delay
-    });
+  createPersonnel: async (
+    personnelData: PersonnelFormData
+  ): Promise<PersonnelMember> => {
+    const { data } = await apiClient.post<PersonnelMember>(
+      "/personnel",
+      personnelData
+    );
+    return data;
   },
 
-  // In a real app, you would also have:
-  // getPersonnelById: (id: string) => Promise<PersonnelMember>
-  // createPersonnel: (data: any) => Promise<PersonnelMember>
-  // updatePersonnel: (id: string, data: any) => Promise<PersonnelMember>
-  // getEquipmentById: (id: string) => Promise<EquipmentItem>
+  /**
+   * [UPDATE] Updates an existing personnel member.
+   */
+  updatePersonnel: async (
+    id: number,
+    personnelData: PersonnelFormData
+  ): Promise<PersonnelMember> => {
+    const { data } = await apiClient.put<PersonnelMember>(
+      `/personnel/${id}`,
+      personnelData
+    );
+    return data;
+  },
+
+  /**
+   * [DELETE] Deletes a personnel member.
+   */
+  deletePersonnel: async (id: number): Promise<void> => {
+    await apiClient.delete(`/personnel/${id}`);
+  },
+
+  // --- Equipment CRUD ---
+
+  /**
+   * [READ] Fetches the list of all equipment.
+   */
+  getEquipment: async (): Promise<EquipmentItem[]> => {
+    const { data } = await apiClient.get<EquipmentItem[]>("/equipment");
+    return data;
+  },
+
+  /**
+   * [CREATE] Creates a new equipment item.
+   */
+  createEquipment: async (
+    equipmentData: EquipmentFormData
+  ): Promise<EquipmentItem> => {
+    const { data } = await apiClient.post<EquipmentItem>(
+      "/equipment",
+      equipmentData
+    );
+    return data;
+  },
+
+  /**
+   * [UPDATE] Updates an existing equipment item.
+   */
+  updateEquipment: async (
+    id: number,
+    equipmentData: EquipmentFormData
+  ): Promise<EquipmentItem> => {
+    const { data } = await apiClient.put<EquipmentItem>(
+      `/equipment/${id}`,
+      equipmentData
+    );
+    return data;
+  },
+
+  /**
+   * [DELETE] Deletes an equipment item.
+   */
+  deleteEquipment: async (id: number): Promise<void> => {
+    await apiClient.delete(`/equipment/${id}`);
+  },
 };

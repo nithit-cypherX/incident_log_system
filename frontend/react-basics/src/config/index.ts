@@ -21,6 +21,14 @@ export const config = {
    */
   apiUrl: import.meta.env.VITE_API_URL || "http://localhost:3000/api/v1",
 
+  // 🌟 --- NEW --- 🌟
+  /**
+   * The base URL for the public Nominatim Geocoding API.
+   * (Nominatim is a free service from OpenStreetMap).
+   */
+  geocodingApiUrl: "https://nominatim.openstreetmap.org",
+  // 🌟 --- END NEW --- 🌟
+
   /**
    * The name of your application.
    */

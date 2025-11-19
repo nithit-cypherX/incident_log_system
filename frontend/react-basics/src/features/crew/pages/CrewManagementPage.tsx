@@ -1,95 +1,269 @@
 // File: src/features/crew/pages/CrewManagementPage.tsx
 /**
- * What it does:
- * The "smart" page component for "Crew & Equipment Management".
- *
- * How it works:
- * - Manages all state for this feature.
- * - 'activeTab': Tracks whether 'personnel' or 'equipment' is selected.
- * - 'personnel' & 'equipment' states start as empty arrays.
- * - 🌟 'useEffect' now fetches data and *directly* sets the state
- * without managing 'loading' or 'error' states. The tables
- * will be empty until the data arrives.
- * - 'handleSort' and 'handleEquipmentSort' update sort states.
- * - 'useMemo' is used to create 'sortedPersonnel' AND 'sortedEquipment'.
- * - The render function is dynamic and passes the lists (which
- * are initially empty) to the dumb tables.
- *
- * How it connects:
- * - 'App.tsx' routes '/crew-management' to this page.
- * - It imports and renders 'PersonnelTable' AND 'EquipmentTable'.
- * - It imports and uses 'crewService' to get data for both.
+ * 🌟 --- FULLY UPDATED --- 🌟
+ * - Manages modal state ('modalOpen', 'modalMode', 'editingItem').
+ * - Handles all CRUD logic (Create, Read, Update, Delete).
+ * - Connects 'Add New', 'Edit', and 'Delete' buttons to functions.
+ * - Renders the new Modal and Form components.
+ * - 🌟 ADDED 'pageError' state for delete actions.
+ * - 🌟 UPDATED 'handleDelete' functions to use try...catch and set 'pageError'.
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   FaSearch,
   FaPlus,
-  FaChevronLeft,
-  FaChevronRight,
+  FaRedo,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import type {
   PersonnelMember,
   CrewPageTab,
   PersonnelSortConfig,
-  PersonnelStatus,
   EquipmentItem,
   EquipmentSortConfig,
+  PersonnelAvailabilityStatus,
   EquipmentStatus,
+  PersonnelFormData, // 🌟 Added
+  EquipmentFormData, // 🌟 Added
 } from "../types/crew.types";
 import { crewService } from "../services/crewService";
 import PersonnelTable from "../components/PersonnelTable";
 import EquipmentTable from "../components/EquipmentTable";
+import Modal from "../../../components/ui/Modal"; // 🌟 Added
+import PersonnelForm from "../components/PersonnelForm"; // 🌟 Added
+import EquipmentForm from "../components/EquipmentForm"; // 🌟 Added
+import { AxiosError } from "axios"; // 🌟 Added
+
+// 🌟 --- Default "empty" states for our forms --- 🌟
+const defaultPersonnelForm: PersonnelFormData = {
+  full_name: "",
+  email: "",
+  role: "Firefighter",
+  ranks: "",
+  status: "Active",
+  availability_status: "Available",
+  password_hash: "",
+};
+
+const defaultEquipmentForm: EquipmentFormData = {
+  asset_id: "",
+  type: "Engine",
+  status: "Available",
+  last_maintenance_date: "",
+};
+// ----------------------------------------------------
 
 const CrewManagementPage = () => {
   // 1. --- State Management ---
   const [activeTab, setActiveTab] = useState<CrewPageTab>("personnel");
 
-  // State for Personnel
+  // Data State
   const [personnel, setPersonnel] = useState<PersonnelMember[]>([]);
-  // 🌟 REMOVED: isLoading and error states
+  const [personnelLoading, setPersonnelLoading] = useState(true);
+  const [personnelError, setPersonnelError] = useState<string | null>(null);
+  const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(true);
+  const [equipmentError, setEquipmentError] = useState<string | null>(null);
+
+  // Sort State
   const [sortConfig, setSortConfig] = useState<PersonnelSortConfig>({
-    key: "name",
+    key: "full_name",
     direction: "ascending",
   });
-
-  // State for Equipment
-  const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [equipmentSortConfig, setEquipmentSortConfig] =
     useState<EquipmentSortConfig>({
       key: "asset_id",
       direction: "ascending",
     });
 
+  // 🌟 --- Modal & Form State --- 🌟
+  const [modalMode, setModalMode] = useState<
+    | "create-personnel"
+    | "edit-personnel"
+    | "create-equipment"
+    | "edit-equipment"
+    | null
+  >(null);
+  const [editingItem, setEditingItem] = useState<
+    PersonnelMember | EquipmentItem | null
+  >(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [crudError, setCrudError] = useState<string | null>(null); // For modal
+  const [pageError, setPageError] = useState<string | null>(null); // 🌟 For delete
+  // ------------------------------
+
   // 2. --- Data Fetching ---
-  // 🌟 This effect now directly fetches and sets data.
+  const fetchPersonnel = useCallback(async () => {
+    setPersonnelLoading(true);
+    setPersonnelError(null); // 🌟 Clear page error on refresh
+    setPageError(null);
+    try {
+      const data = await crewService.getPersonnel();
+      setPersonnel(data);
+    } catch (err: any) {
+      setPersonnelError(err.message || "Failed to fetch personnel");
+    } finally {
+      setPersonnelLoading(false);
+    }
+  }, []);
+
+  const fetchEquipment = useCallback(async () => {
+    setEquipmentLoading(true);
+    setEquipmentError(null); // 🌟 Clear page error on refresh
+    setPageError(null);
+    try {
+      const data = await crewService.getEquipment();
+      setEquipment(data);
+    } catch (err: any) {
+      setEquipmentError(err.message || "Failed to fetch equipment");
+    } finally {
+      setEquipmentLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (activeTab === "personnel") {
-      // No loading state set.
-      crewService.getPersonnel().then((data) => {
-        setPersonnel(data);
-      });
-      // We don't catch errors, as we aren't displaying them.
-      // In a real app, you'd still want to log them.
+      fetchPersonnel();
     } else if (activeTab === "equipment") {
-      // No loading state set.
-      crewService.getEquipment().then((data) => {
-        setEquipment(data);
-      });
+      fetchEquipment();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchPersonnel, fetchEquipment]);
 
-  // 3. --- Helper Functions --- (Unchanged)
+  // 3. --- 🌟 Modal & CRUD Handlers --- 🌟
+  const handleCloseModal = () => {
+    setModalMode(null);
+    setEditingItem(null);
+    setCrudError(null);
+    setIsSubmitting(false);
+  };
 
+  // --- Personnel Handlers ---
+  const handleOpenCreatePersonnel = () => {
+    setModalMode("create-personnel");
+    setEditingItem(null); // Not editing
+  };
+
+  const handleEditPersonnel = (member: PersonnelMember) => {
+    setModalMode("edit-personnel");
+    setEditingItem(member);
+  };
+
+  const onPersonnelSubmit = async (data: PersonnelFormData) => {
+    setIsSubmitting(true);
+    setCrudError(null);
+    setPageError(null); // 🌟 Clear page error
+    try {
+      if (modalMode === "edit-personnel" && editingItem) {
+        // UPDATE
+        await crewService.updatePersonnel(editingItem.id, data);
+      } else {
+        // CREATE
+        await crewService.createPersonnel(data);
+      }
+      handleCloseModal();
+      fetchPersonnel(); // Re-fetch data
+    } catch (err: any) {
+      // 🌟 Handle server validation errors
+      if (err instanceof AxiosError && err.response?.data?.error) {
+        setCrudError(err.response.data.error);
+      } else {
+        setCrudError(err.message || "Failed to save personnel.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeletePersonnel = async (member: PersonnelMember) => {
+    if (
+      !window.confirm(`Are you sure you want to delete ${member.full_name}?`)
+    ) {
+      return;
+    }
+    setPageError(null); // 🌟 Clear old errors
+    try {
+      await crewService.deletePersonnel(member.id);
+      fetchPersonnel(); // Re-fetch data
+    } catch (err: any) {
+      // 🌟 Show the error from the server!
+      if (err instanceof AxiosError && err.response?.data?.error) {
+        setPageError(err.response.data.error);
+      } else {
+        setPageError(err.message);
+      }
+    }
+  };
+
+  // --- Equipment Handlers ---
+  const handleOpenCreateEquipment = () => {
+    setModalMode("create-equipment");
+    setEditingItem(null);
+  };
+
+  const handleEditEquipment = (item: EquipmentItem) => {
+    setModalMode("edit-equipment");
+    setEditingItem(item);
+  };
+
+  const onEquipmentSubmit = async (data: EquipmentFormData) => {
+    setIsSubmitting(true);
+    setCrudError(null);
+    setPageError(null); // 🌟 Clear page error
+    try {
+      if (modalMode === "edit-equipment" && editingItem) {
+        // UPDATE
+        await crewService.updateEquipment(editingItem.id, data);
+      } else {
+        // CREATE
+        await crewService.createEquipment(data);
+      }
+      handleCloseModal();
+      fetchEquipment(); // Re-fetch data
+    } catch (err: any) {
+      // 🌟 Handle server validation errors
+      if (err instanceof AxiosError && err.response?.data?.error) {
+        setCrudError(err.response.data.error);
+      } else {
+        setCrudError(err.message || "Failed to save equipment.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteEquipment = async (item: EquipmentItem) => {
+    if (
+      !window.confirm(`Are you sure you want to delete ${item.asset_id}?`)
+    ) {
+      return;
+    }
+    setPageError(null); // 🌟 Clear old errors
+    try {
+      await crewService.deleteEquipment(item.id);
+      fetchEquipment(); // Re-fetch
+    } catch (err: any) {
+      // 🌟 Show the error from the server!
+      if (err instanceof AxiosError && err.response?.data?.error) {
+        setPageError(err.response.data.error);
+      } else {
+        setPageError(err.message);
+      }
+    }
+  };
+
+  // 4. --- Sorting & Filtering --- (Unchanged from last step)
   const getTabClass = (tabName: CrewPageTab): string => {
+    // ... (logic unchanged)
     const baseClass = "pb-2 px-1 font-medium transition-colors";
     if (activeTab === tabName) {
       return `${baseClass} text-primary-color border-b-2 border-[#0D6EFD]`;
     }
     return `${baseClass} text-secondary-color hover:text-primary-color`;
   };
-
+  // ... (all other sort/filter logic is unchanged) ...
   const handleSort = (key: keyof PersonnelMember) => {
+    // ... (logic unchanged)
     setSortConfig((prev) => ({
       key,
       direction:
@@ -100,6 +274,7 @@ const CrewManagementPage = () => {
   };
 
   const handleEquipmentSort = (key: keyof EquipmentItem) => {
+    // ... (logic unchanged)
     setEquipmentSortConfig((prev) => ({
       key,
       direction:
@@ -109,29 +284,38 @@ const CrewManagementPage = () => {
     }));
   };
 
-  const getPersonnelStatusOrder = (status: PersonnelStatus) =>
-    ({ available: 1, on_duty: 2, on_leave: 3 }[status] || 99);
+  const getAvailabilityOrder = (status: PersonnelAvailabilityStatus) =>
+    ({
+      Available: 1,
+      On_Duty: 2,
+      Assigned_to_Incident: 3,
+      Off_Duty: 4,
+    }[status] || 99);
 
   const getEquipmentStatusOrder = (status: EquipmentStatus) =>
     ({
-      available: 1,
-      in_use: 2,
-      maintenance: 3,
-      out_of_service: 4,
+      Available: 1,
+      In_Use: 2,
+      Maintenance: 3,
+      Out_of_Service: 4,
     }[status] || 99);
 
-  // 4. --- Memoized Sorting --- (Unchanged)
-
   const sortedPersonnel = useMemo(() => {
+    // ... (logic unchanged)
     let sortablePersonnel = [...personnel];
     sortablePersonnel.sort((a, b) => {
       const key = sortConfig.key;
-      let aValue: string | number = a[key];
-      let bValue: string | number = b[key];
-      if (key === "status") {
-        aValue = getPersonnelStatusOrder(a.status);
-        bValue = getPersonnelStatusOrder(b.status);
+      let aValue: string | number | null = a[key];
+      let bValue: string | number | null = b[key];
+
+      if (key === "availability_status") {
+        aValue = getAvailabilityOrder(a.availability_status);
+        bValue = getAvailabilityOrder(b.availability_status);
       }
+      
+      aValue = aValue ?? "";
+      bValue = bValue ?? "";
+
       if (aValue < bValue)
         return sortConfig.direction === "ascending" ? -1 : 1;
       if (aValue > bValue)
@@ -142,19 +326,23 @@ const CrewManagementPage = () => {
   }, [personnel, sortConfig]);
 
   const sortedEquipment = useMemo(() => {
+    // ... (logic unchanged)
     let sortableEquipment = [...equipment];
     sortableEquipment.sort((a, b) => {
       const key = equipmentSortConfig.key;
-      let aValue: string | number = a[key];
-      let bValue: string | number = b[key];
+      let aValue: string | number | null = a[key];
+      let bValue: string | number | null = b[key];
 
       if (key === "status") {
         aValue = getEquipmentStatusOrder(a.status);
         bValue = getEquipmentStatusOrder(b.status);
       } else if (key === "last_maintenance_date") {
-        aValue = new Date(a.last_maintenance_date).getTime();
-        bValue = new Date(b.last_maintenance_date).getTime();
+        aValue = a.last_maintenance_date ? new Date(a.last_maintenance_date).getTime() : 0;
+        bValue = b.last_maintenance_date ? new Date(b.last_maintenance_date).getTime() : 0;
       }
+      
+      aValue = aValue ?? "";
+      bValue = bValue ?? "";
 
       if (aValue < bValue)
         return equipmentSortConfig.direction === "ascending" ? -1 : 1;
@@ -166,19 +354,18 @@ const CrewManagementPage = () => {
   }, [equipment, equipmentSortConfig]);
 
   // 5. --- Render ---
-
-  const currentItems =
-    activeTab === "personnel" ? sortedPersonnel : sortedEquipment;
-  const currentItemCount = currentItems.length;
+  const currentItemCount =
+    activeTab === "personnel"
+      ? sortedPersonnel.length
+      : sortedEquipment.length;
 
   return (
     <div className="space-y-6">
-      {/* 5a. Page Title */}
+      {/* ... (title and tabs unchanged) ... */}
       <h2 className="text-3xl font-bold text-primary-color">
         Crew & Equipment Management
       </h2>
 
-      {/* 5b. Tabs (Personnel & Equipment) */}
       <div className="border-b border-[#495057]">
         <nav className="flex space-x-6">
           <button
@@ -196,9 +383,17 @@ const CrewManagementPage = () => {
         </nav>
       </div>
 
-      {/* 5c. Dynamic Controls Bar (Search, Add New) */}
+      {/* 🌟 --- Page Error Display --- 🌟 */}
+      {pageError && (
+        <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md text-red-200 text-sm flex items-center gap-2">
+          <FaExclamationTriangle /> {pageError}
+        </div>
+      )}
+      
+      {/* 5c. 🌟 Dynamic Controls Bar (Search, Add New) */}
       <div className="flex flex-col md:flex-row gap-4 justify-between">
         <div className="relative flex-grow">
+          {/* ... (search input unchanged) ... */}
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <FaSearch className="text-secondary-color" />
           </div>
@@ -206,19 +401,31 @@ const CrewManagementPage = () => {
             type="text"
             placeholder={
               activeTab === "personnel"
-                ? "Search personnel (name, ID, role...)"
-                : "Search equipment (type, ID, station...)"
+                ? "Search personnel (name, email, role...)"
+                : "Search equipment (type, ID...)"
             }
             className="w-full p-3 h-12 pl-10 form-input rounded-md placeholder-[#ADB5BD]"
           />
         </div>
         <div className="flex gap-3">
           <button
-            className={
-              activeTab === "personnel"
-                ? "btn-main-red py-2 px-4 rounded-md h-12 justify-center"
-                : "btn-main-red py-2 px-4 rounded-md h-12 justify-center"
+            onClick={() =>
+              activeTab === "personnel" ? fetchPersonnel() : fetchEquipment()
             }
+            className="btn-main-gray py-2 px-4 rounded-md h-12 justify-center"
+            title="Refresh data"
+          >
+            <FaRedo />
+          </button>
+
+          {/* 🌟 Add New Button (Now functional) */}
+          <button
+            onClick={
+              activeTab === "personnel"
+                ? handleOpenCreatePersonnel
+                : handleOpenCreateEquipment
+            }
+            className="btn-main-red py-2 px-4 rounded-md h-12 justify-center"
           >
             <FaPlus className="mr-2" />
             {activeTab === "personnel"
@@ -228,54 +435,92 @@ const CrewManagementPage = () => {
         </div>
       </div>
 
-      {/* 5d. 🌟 Dynamic Content (Now passes no loading/error props) */}
+      {/* 5d. Dynamic Content */}
       {activeTab === "personnel" ? (
         <PersonnelTable
           personnel={sortedPersonnel}
           sortConfig={sortConfig}
           onSort={handleSort}
+          isLoading={personnelLoading}
+          error={personnelError}
+          onEdit={handleEditPersonnel}
+          onDelete={handleDeletePersonnel}
         />
       ) : (
         <EquipmentTable
           equipment={sortedEquipment}
           sortConfig={equipmentSortConfig}
           onSort={handleEquipmentSort}
+          isLoading={equipmentLoading}
+          error={equipmentError}
+          onEdit={handleEditEquipment}
+          onDelete={handleDeleteEquipment}
         />
       )}
 
       {/* 5e. Dynamic Pagination */}
       <div className="flex items-center justify-between mt-6 text-sm">
         <span className="text-secondary-color">
-          Showing 1 to {Math.min(currentItemCount, 10)} of {currentItemCount}{" "}
-          results
+          Showing {currentItemCount} results
         </span>
-        <div className="flex gap-1">
-          <button
-            className="py-2 px-3 btn-main-gray rounded-md disabled:opacity-40"
-            disabled
-          >
-            <FaChevronLeft />
-          </button>
-          <button className="py-2 px-4 bg-[#0D6EFD] text-white font-bold rounded-md">
-            1
-          </button>
-          <button className="py-2 px-4 btn-main-gray rounded-md">2</button>
-          <button className="py-2 px-4 btn-main-gray rounded-md">3</button>
-          <button className="py-2 px-4 btn-main-gray rounded-md">...</button>
-          <button
-            className="py-2 px-4 btn-main-gray rounded-md"
-            disabled={currentItemCount <= 10}
-          >
-            10
-          </button>
-          <button
-            className="py-2 px-3 btn-main-gray rounded-md"
-            disabled={currentItemCount <= 10}
-          >
-            <FaChevronRight />
-          </button>
-        </div>
+        {/* ... (pagination controls) ... */}
       </div>
+
+      {/* 6. 🌟 --- The Modal --- 🌟 */}
+      <Modal
+        isOpen={!!modalMode}
+        onClose={handleCloseModal}
+        title={
+          modalMode?.startsWith("edit-")
+            ? `Edit ${activeTab}`
+            : `Add New ${activeTab}`
+        }
+      >
+        {/* Show validation error from the server */}
+        {crudError && (
+          <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md text-red-200 text-sm flex items-center gap-2">
+            <FaExclamationTriangle /> {crudError}
+          </div>
+        )}
+
+        {/* Render Personnel Form */}
+        {(modalMode === "create-personnel" ||
+          modalMode === "edit-personnel") && (
+          <PersonnelForm
+            onSubmit={onPersonnelSubmit}
+            onCancel={handleCloseModal}
+            isSubmitting={isSubmitting}
+            isEditMode={modalMode === "edit-personnel"}
+            defaultValues={
+              editingItem
+                ? {
+                    ...(editingItem as PersonnelMember),
+                    password_hash: "", // Don't pass hash to form
+                  }
+                : defaultPersonnelForm
+            }
+          />
+        )}
+
+        {/* Render Equipment Form */}
+        {(modalMode === "create-equipment" ||
+          modalMode === "edit-equipment") && (
+          <EquipmentForm
+            onSubmit={onEquipmentSubmit}
+            onCancel={handleCloseModal}
+            isSubmitting={isSubmitting}
+            defaultValues={
+              editingItem
+                ? {
+                  ...(editingItem as EquipmentItem),
+                  // Ensure date is in YYYY-MM-DD format for input
+                  last_maintenance_date: (editingItem as EquipmentItem).last_maintenance_date?.split("T")[0] || "",
+                }
+                : defaultEquipmentForm
+            }
+          />
+        )}
+      </Modal>
     </div>
   );
 };
