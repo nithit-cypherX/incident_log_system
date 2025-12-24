@@ -1,7 +1,3 @@
-Here is a **clean, complete, fully reconstructed `README.md`** with proper formatting (no truncation).
-You can copy and paste it directly into your file.
-
----
 
 # 🔥 FirePersona 5 – Incident Log System
 
@@ -234,3 +230,4 @@ If you want, I can also:
 ✅ Add badges, diagrams, or a folder-tree graphic
 ✅ Add installation GIFs
 Just tell me!
+
