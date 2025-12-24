@@ -33,6 +33,16 @@ CREATE TABLE incidents (
   city VARCHAR(100),
   state VARCHAR(100),
   zip_code VARCHAR(20),
+  
+  -- 🌟 --- NEW FIELDS --- 🌟
+  -- We use DECIMAL for high precision.
+  -- (10, 8) for latitude (e.g., 12.34567890)
+  -- (11, 8) for longitude (e.g., 123.45678901)
+  -- We allow them to be NULL in case we can't find coordinates.
+  latitude DECIMAL(10, 8) NULL,
+  longitude DECIMAL(11, 8) NULL,
+  -- 🌟 --- END NEW --- 🌟
+  
   description TEXT,
   reported_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_by_user_id INT NOT NULL,
@@ -109,13 +119,14 @@ VALUES
 ('David Chen', 'david.chen@firedept.com', 'hashed_111', 'Firefighter', 'Driver', 'Active', 'Available'),
 ('Maria Garcia', 'maria.garcia@firedept.com', 'hashed_222', 'Captain', 'Battalion Chief', 'Active', 'On_Duty');
 
-INSERT INTO incidents (incident_code, title, incident_type, status, priority, address, city, state, zip_code, description, created_by_user_id)
+-- 🌟 --- UPDATED INSERT (Added latitude and longitude) --- 🌟
+INSERT INTO incidents (incident_code, title, incident_type, status, priority, address, city, state, zip_code, latitude, longitude, description, created_by_user_id)
 VALUES
-('INC-2025-00001', 'Warehouse fire near Rama IX', 'fire', 'active', 'high', '45 Rama IX Rd', 'Bangkok', 'Bangkok', '10310', 'Large warehouse fire reported by multiple callers.', 2),
-('INC-2025-00002', 'Traffic accident with injuries', 'ems', 'pending', 'medium', '12 Sukhumvit Soi 11', 'Bangkok', 'Bangkok', '10110', 'Two-vehicle T-bone collision.', 1),
-('INC-2025-00003', 'Cat rescue from tree', 'rescue', 'closed', 'low', '100 Beach Rd', 'Phuket', 'Phuket', '83000', 'Local resident reported a cat stuck in a tree for 24 hours.', 4),
-('INC-2025-00004', 'Chemical leak report', 'hazmat', 'closed', 'high', '300 Industrial Park', 'Chonburi', 'Chonburi', '20000', 'Reports of a strange smell and visible fumes from a factory.', 2),
-('INC-2025-00005', 'Elderly assistance call', 'public_assist', 'active', 'low', '25 Market St', 'Chiang Mai', 'Chiang Mai', '50000', 'Elderly person fell, needs help getting up. No injuries reported.', 1);
+('INC-2025-00001', 'Warehouse fire near Rama IX', 'fire', 'active', 'high', '45 Rama IX Rd', 'Bangkok', 'Bangkok', '10310', 13.7578, 100.5637, 'Large warehouse fire reported by multiple callers.', 2),
+('INC-2025-00002', 'Traffic accident with injuries', 'ems', 'pending', 'medium', '12 Sukhumvit Soi 11', 'Bangkok', 'Bangkok', '10110', 13.7408, 100.5536, 'Two-vehicle T-bone collision.', 1),
+('INC-2025-00003', 'Cat rescue from tree', 'rescue', 'closed', 'low', '100 Beach Rd', 'Phuket', 'Phuket', '83000', 7.8935, 98.2949, 'Local resident reported a cat stuck in a tree for 24 hours.', 4),
+('INC-2025-00004', 'Chemical leak report', 'hazmat', 'closed', 'high', '300 Industrial Park', 'Chonburi', 'Chonburi', '20000', 13.3611, 100.9847, 'Reports of a strange smell and visible fumes from a factory.', 2),
+('INC-2025-00005', 'Elderly assistance call', 'public_assist', 'active', 'low', '25 Market St', 'Chiang Mai', 'Chiang Mai', '50000', 18.7900, 98.9880, 'Elderly person fell, needs help getting up. No injuries reported.', 1);
 
 INSERT INTO incident_personnel (incident_id, user_id, role_on_incident)
 VALUES
@@ -136,4 +147,3 @@ VALUES
 INSERT INTO incident_equipment (incident_id, equipment_id)
 VALUES
 (1, 1), (1, 2), (2, 3), (3, 4), (4, 5);
-
